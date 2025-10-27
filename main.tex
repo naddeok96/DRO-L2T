@@ -42,7 +42,7 @@
 \maketitle
 
 \begin{abstract}
-Modern ML systems increasingly learn from multiple heterogeneous datasets and across task families (e.g., classification, detection, sequence labeling, QA), where naive sampling can overfit to large or easy sources and waste budget. We revisit \emph{learning to teach}---training a reinforcement-learning (RL) teacher to control a student's learning dynamics---and argue that three properties are essential but have not been addressed together: (i) a \emph{Markov} teacher--student formulation whose next-step outcomes depend only on the current state and action, (ii) \emph{number-of-datasets invariance} so one policy handles any $N$ and any dataset permutation, and (iii) \emph{task \& model invariance} so the same policy transfers across task families and architectures. Prior learning-to-teach work has demonstrated per-example data selection and dynamic loss design \citep{fan2018l2t,wu2018l2tloss}, but typically without a formal Markov interface, without an explicitly \emph{set-invariant} treatment of many datasets, and without a small, task/architecture/optimizer-agnostic observation.
+Modern ML systems increasingly learn from multiple heterogeneous datasets and across task families (e.g., classification, detection, sequence labeling, QA), where naive sampling can overfit to large or easy sources and waste budget. We revisit \emph{learning to teach}—training a reinforcement-learning (RL) teacher to control a student's learning dynamics—and argue that three properties are essential but have not been addressed together: (i) a \emph{Markov} teacher–student formulation whose next-step outcomes depend only on the current state and action, (ii) \emph{number-of-datasets invariance} so one policy handles any $N$ and any dataset permutation, and (iii) \emph{task- and model-invariance} so the same policy transfers across task families and architectures. Prior learning-to-teach work has demonstrated per-example data selection and dynamic loss design \citep{fan2018l2t,wu2018l2tloss}, but typically without a formal Markov interface, without an explicitly \emph{set-invariant} treatment of many datasets, and without a small, task/architecture/optimizer-agnostic observation.
 We present a Markov teacher--student MDP grounded in SGD dynamics and introduce a \emph{grouped, universal state}: (A) \textbf{dataset-level DeepSets embeddings} built from permutation-invariant statistics of predictions, losses, gradients, and diversity; (B) a \textbf{model-complexity block} with size/compute and capacity proxies; and (C) a \textbf{training-progress block} with normalized, task-agnostic dynamics signals. This state supports a set-based encoder and shared per-dataset policy head with mixture outputs valid for any $N$. The teacher jointly controls dataset mixture, learning rate, and usage within a CMDP budget view. We validate (a) \emph{approximate Markovity} via one-step prediction $R^2$ and small gains from adding short history, (b) invariance under varying $N$ and permutations, and (c) \emph{cross-task/architecture transfer}, including leave-one-task-family-out and zero-/few-shot transfer from toy episodes to large models. Despite its compactness, the grouped state yields strong sample efficiency and balanced performance (macro-accuracy / worst-dataset) across heterogeneous datasets and tasks, unifying Markovity, set invariance, and portability.
 \end{abstract}
 
@@ -53,7 +53,7 @@ A central obstacle is the design of the teacher’s state and interface. For wel
 
 Prior learning-to-teach works demonstrate the promise of RL teachers for \emph{data selection} \citep{fan2018l2t} and dynamic loss design \citep{wu2018l2tloss}, and multi-task scheduling and loss-weighting methods can improve joint training \citep{kendall2018uncertainty,chen2018gradnorm}. However, existing approaches typically (i) omit a formal Markov teacher--student interface and do not diagnose when compact observations suffice; (ii) do not treat the state as a \emph{set} with explicit permutation and cardinality invariance; and (iii) rely on task-specific signals or hand-crafted features that do not readily transfer across task families. Meanwhile, meta-RL frameworks \citep{duan2016rl2,finn2017maml} and permutation-invariant encoders for sets \citep{zaheer2017deepsets,lee2019settransformer} provide the ingredients to address these desiderata, but have not been combined in a unified, practical teacher for multi-dataset, multi-task training.
 
-\textbf{Our approach.} We formalize the hidden state of training under SGD and define a task/model/optimizer-agnostic observation split into three groups: \emph{(A) dataset-level DeepSets embeddings}, \emph{(B) model complexity}, and \emph{(C) training progress}. (A) is computed only from model probabilities and update magnitudes on tiny probes and includes loss/uncertainty histograms, confidence percentiles, gradient-norm moments, diversity sketches, and light dataset meta-statistics. (B) summarizes capacity with log-parameters, FLOPs, overfit gap, and optimizer hyperparameters. (C) tracks normalized time/budget, EMAs of train/val losses and their gaps, gradient dynamics, and LR ratio. This universal grouped state feeds a \emph{set-based} encoder (DeepSets/mean pooling) with shared per-dataset policy heads whose masked-softmax mixture is valid for any $N$ and any dataset ordering. The teacher jointly controls dataset mixture, learning rate, and budget usage within a CMDP and is trained with PPO and a dual variable. We \emph{validate} approximate Markovity via one-step prediction and minimal history gains, show robustness to changes in $N$ and permutations, and demonstrate cross-task/architecture transfer, aligning with and extending \citet{fan2018l2t,wu2018l2tloss}.
+\textbf{Our approach.} We formalize the hidden state of training under SGD and define a task/model/optimizer-agnostic observation split into three groups: \emph{(A) dataset-level DeepSets embeddings}, \emph{(B) model complexity}, and \emph{(C) training progress}. (A) is computed only from model probabilities and update magnitudes on tiny probes and includes loss/uncertainty histograms, confidence percentiles, gradient-norm moments, diversity sketches, and light dataset meta-statistics (cf. the student-feedback features in \citet{fan2018l2t}; and the loss-shaping view of \citet{wu2018l2tloss}). (B) summarizes capacity with log-parameters, FLOPs, overfit gap, and optimizer hyperparameters. (C) tracks normalized time/budget, EMAs of train/val losses and their gaps, gradient dynamics, and LR ratio. This universal grouped state feeds a \emph{set-based} encoder (DeepSets with mean pooling) with shared per-dataset policy heads whose masked-softmax mixture is valid for any $N$ and any dataset ordering. The teacher jointly controls dataset mixture, learning rate, and budget usage within a CMDP and is trained with PPO and a dual variable. We \emph{validate} approximate Markovity via one-step prediction and minimal history gains, show robustness to changes in $N$ and permutations, and demonstrate cross-task/architecture transfer, aligning with and extending \citet{fan2018l2t,wu2018l2tloss}.
 
 \textbf{Contributions.} (1) A Markov teacher--student formulation grounded in SGD with a \emph{grouped, task/architecture-agnostic} state: dataset-level DeepSets embeddings + model-complexity block + training-progress block, with empirical diagnostics of approximate Markovity. (2) A \emph{number-of-datasets invariant} policy/value parameterization via set encoders and shared per-dataset policy heads, yielding valid mixture actions for any $N$ and any permutation. (3) A cross-task and cross-architecture meta-training/evaluation protocol (including leave-one-task-family-out and zero-/few-shot transfer) demonstrating \emph{portability}. (4) A CMDP budget view with mixture, learning-rate, and usage control, improving \emph{balanced} performance (macro-accuracy and worst-dataset metrics) over uniform, myopic/bandit, and schedule controllers.
 
@@ -110,6 +110,9 @@ Given an action $a_t=(w_t,\ell_t,u_t)$---mixture over datasets, learning rate, a
 where $\xi_t$ denotes minibatch randomness.
 Sampling at $t$ thus depends only on $(x_t,a_t)$.
 \textit{Remark:} If drawing \emph{without} replacement from finite pools, augment $x_t$ with per-dataset remaining counts so the process remains Markov; we otherwise assume with-replacement sampling in experiments.
+\begin{assumption}[With-replacement sampling]\label{assump:with-repl}
+Unless stated otherwise, mini-batches at time $t$ are sampled \emph{with replacement} from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$. This makes the data-generation mechanism conditionally independent of history given $(x_t,a_t)$.
+\end{assumption}
 
 \paragraph{Observable state (grouped, task/model/optimizer-agnostic).}
 We decompose the observable state into three blocks and concatenate them for control:
@@ -132,6 +135,22 @@ where the input set contains only task-agnostic statistics computed on a tiny, f
 \end{itemize}
 All quantities are standardized using robust EMAs (median/IQR) and are architecture- and label-permutation agnostic, following the spirit of \citet{fan2018l2t} (student feedback on samples) while remaining model-agnostic.
 
+\begin{definition}[Grouped state: minimal-viable instantiation]\label{def:minimal}
+At each step $t$, the observable grouped state is
+$
+S_t=\big(\{z_{t,i}\}_{i=1}^N,\,g^{\mathrm{model}}_t,\,g^{\mathrm{progress}}_t\big)
+$,
+where, for each dataset $i$:
+\begin{align*}
+z_{t,i} &:= \mathrm{DeepSets}\!\Big(\{\text{loss histogram (8 bins)},\ \text{confidence percentiles }(p_{10},p_{50},p_{90}),\\
+&\qquad\ \ \text{ECE-5},\ \text{mean NLL (length-normalized)},\ \text{grad-norm mean/std (log)},\ \text{diversity sketch},\ \log|\mathcal{D}_i|,\ \text{label entropy}\}\Big)\in\R^{d_z},\\
+g^{\mathrm{model}}_t &:= \big[\log|\theta|,\ \log\text{FLOPs/forward},\ \text{overfit gap}=\text{loss}_{\text{train}}-\text{loss}_{\text{val}},\ \text{LR},\ \text{momentum or }(\beta_1,\beta_2),\ \text{weight decay}\big],\\
+g^{\mathrm{progress}}_t &:= \big[t/H,\ B_t/B_0,\ \mathrm{EMA}(\text{train loss}),\ \mathrm{EMA}(\text{val loss}),\ \Delta\text{loss/step},\ \text{gen gap},\ \text{grad-norm mean/std},\\
+&\qquad\ \ \cos\angle(\nabla_t,\nabla_{t-1}),\ \text{LR}/\text{LR}_0\big].
+\end{align*}
+All scalars are robustly normalized (median/IQR clipping). When labels on the probe are unavailable, macro-Acc/F1 terms are omitted and proper scores (NLL, calibration) are used.
+\end{definition}
+
 \textbf{(B) Model-complexity block.} A small vector
 \[
 g^{\text{model}}_t=\big[\log|\theta|,\;\log\text{FLOPs/forward},\;\text{overfit gap}=\text{loss}_{\text{train}}-\text{loss}_{\text{val}},\;\text{LR},\;\text{momentum or }(\beta_1,\beta_2),\;\text{weight decay}\big].
@@ -150,7 +169,7 @@ We compute a 5-bin expected calibration error on the maximum predicted class pro
 Let $\mathcal{B}_b$ be instances with $p_{\max}\in((b-1)/5,b/5]$. Then
 $\mathrm{ECE}_5=\sum_{b=1}^5 \frac{|\mathcal{B}_b|}{n}\,\big|\mathrm{acc}(\mathcal{B}_b)-\mathrm{conf}(\mathcal{B}_b)\big|$,
 where $\mathrm{conf}(\mathcal{B}_b)$ is the average $p_{\max}$ and $\mathrm{acc}(\mathcal{B}_b)$ the empirical accuracy.
-Here $n$ is the number of evaluated instances (tokens for sequences; matched boxes for detection).
+Here $n$ is the number of evaluated instances (tokens for sequences; matched boxes for detection). For regression-style probes, ECE-5 is replaced by a proper calibration score (e.g., empirical coverage error under a Gaussian head).
 
 \begin{proposition}[Hidden-state Markovity]
 Under SGD with batches drawn according to $w_t$ \emph{with replacement} and fixed update rule $U$, the process on hidden states satisfies
@@ -216,7 +235,7 @@ The same learned policy applies to unseen numbers of datasets or new orderings w
 
 \section{Method}
 \subsection{Policy and Training}
-We use an invariant encoder $f_\psi$ with a shared per-dataset block $\phi_\psi$ and \emph{mean}-pooled DeepSets over $\{z_{t,i}\}$ to produce a representation $h_t$, then concatenate the grouped globals $g^{\text{model}}_t$ and $g^{\text{progress}}_t$.
+We use an invariant encoder $f_\psi$ with a shared per-dataset block $\phi_\psi$ and \emph{mean}-pooled DeepSets over $\{z_{t,i}\}$ to produce a representation $h_t$, then concatenate the grouped globals $g^{\text{model}}_t$ and $g^{\text{progress}}_t$. Mean pooling (vs.\ sum) avoids scale drift as $N$ varies.
 Policy heads output (i) per-dataset mixture logits $\{\alpha_{t,i}\}$, normalized to $w_t$, (ii) learning rate $\ell_t$ (bounded via squashing to $[\ell_{\min},\ell_{\max}]$), and (iii) usage $u_t\in(0,1)$ (sigmoid).
 A value head $V_\psi(S_t)$ shares the invariant encoder and globals.
 
@@ -386,7 +405,7 @@ This enables training the teacher on inexpensive toy episodes and transferring t
 
 \paragraph{Limitations.}
 The grouped state is intentionally coarse; it forgoes task-specific diagnostics (e.g., IoU error typing) that can accelerate learning in specialized settings.
-Its effectiveness depends on stable computation of NLL and max-probabilities (sequence normalization matters).
+Its effectiveness depends on stable computation of NLL and max-probabilities (sequence normalization matters and should be reported in the appendix).
 While we show strong transfer, certain domains (e.g., extreme class imbalance or heavy data augmentation regimes) may benefit from adding one or two \emph{task-agnostic} action/constraint heads (e.g., an augmentation-strength tier), which we leave to future work.
 
 \section{Conclusion}
