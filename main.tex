@@ -15,6 +15,9 @@
 \usepackage{xcolor}
 \usepackage{subcaption}
 \usepackage{xspace}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,calc,backgrounds,decorations.pathreplacing}
+
 
 \hypersetup{
   colorlinks=true,
@@ -85,7 +88,7 @@ DeepSets \citep{zaheer2017deepsets} and Set Transformer \citep{lee2019settransfo
 Compared to \citet{fan2018l2t,wu2018l2tloss}, we (i) formalize a Markov teacher--student MDP and empirically diagnose \emph{approximate Markovity} of a compact \emph{grouped} observation; (ii) enforce \emph{number-of-datasets invariance} with set encoders and shared per-dataset heads; and (iii) target \emph{task/architecture invariance} via task-agnostic statistics (probabilities, losses, gradient magnitudes, diversity sketches) plus model/progress blocks. Relative to fairness and GroupDRO \citep{hashimoto2018fairness,sagawa2020dro}, we provide a complementary mechanism—\emph{adaptive curricula}—that can protect minority datasets without modifying the base loss.
 
 \section{Problem Formulation}
-We study a teacher--student interaction in which a policy $\pi_\phi$ controls the training of a student $f_\theta$ on $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ over a horizon $H$ with an initial example budget $B_0$. The goal is to maximize a balanced end metric---macro-accuracy across datasets---so that small, high-stakes datasets are not eclipsed by large auxiliaries. Formally, with per-dataset validation accuracies $\mathrm{Acc}_{i,t}$, we write $\MacroAcc_t=\frac{1}{N}\sum_{i=1}^N \mathrm{Acc}_{i,t}$ and optimize either a terminal reward $r_t=\1\{t=H\}\MacroAcc_H$ or the incremental difference $r_t=\MacroAcc_t-\MacroAcc_{t-1}$ under a budget constraint.
+We study a teacher--student interaction in which a policy $\pi_\phi$ controls the training of a student $f_\theta$ on $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ over a horizon $H$ with an initial example budget $B_0$. The goal is to maximize a balanced end metric---macro-accuracy across datasets---so that small, high-stakes datasets are not eclipsed by large auxiliaries. Formally, with per-dataset validation accuracies $\mathrm{Acc}_{i,t}$, we write $\MacroAcc_t=\frac{1}{N}\sum_{i=1}^N \mathrm{Acc}_{i,t}$ and optimize either a terminal reward $r_t=\1\{t=H\}\MacroAcc_H$ or the incremental difference $r_t=\MacroAcc_{t+1}-\MacroAcc_{t}$ under a budget constraint.
 
 \subsection{A Markov Teacher--Student MDP}\label{sec:mdp}
 We cast curriculum control as an MDP with observable state $S_t$, action $a_t$, and reward $r_t$. The process is Markov if
@@ -142,7 +145,12 @@ the log-EMA gradient norm and its cosine similarity to a running global gradient
 g^{\text{data}}_t \;=\; \rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi(z_{t,i})\right),
 \label{eq:deepsets-global}
 \end{equation}
-where $\phi$ and $\rho$ are shared neural networks. The per-dataset descriptors themselves are not part of the fixed-length state fed to the value function; they are consumed inside the policy to emit per-dataset actions while preserving invariance. Collecting these descriptors yields the dataset-level summary vector used throughout the policy and value networks:
+where $\phi$ and $\rho$ are shared neural networks. The per-dataset descriptors themselves are not part of the fixed-length state fed to the value function; they are consumed inside the policy to emit per-dataset actions while preserving invariance. Let \(g_t \triangleq \frac{1}{K_t}\sum_{k=1}^{K_t} \nabla_\theta \mathcal{L}(\theta_t; \mathcal{B}_{t,k})\) 
+be the average per-step gradient over the \(K_t\) mini-batches drawn at decision time \(t\). 
+Let \(\bar g_t = \mathrm{EMA}_\beta(g_t)\) be its exponential moving average. 
+For each dataset \(i\), define \(g_{t,i} \triangleq \nabla_\theta \mathcal{L}(\theta_t; \mathcal{P}_{t,i})\), 
+the gradient on a fixed small probe mini-batch \(\mathcal{P}_{t,i}\subset\mathcal{D}_i\).
+Collecting these descriptors yields the dataset-level summary vector used throughout the policy and value networks:
 
 \begin{equation}
 \label{eq:gdata-full}
@@ -190,7 +198,7 @@ t/H,\;
 B_t/B_0,\;
 \eta_t,\;
 \mu_t,\;
-\log\lambda_t,\;
+\log\lambda^{\mathrm{wd}}_t,\;
 \mathcal L^{\mathrm{val}}_t,\\[-0.25em]
 &\qquad
 \big(\mathcal L^{\mathrm{train}}_t-\mathcal L^{\mathrm{val}}_t\big),\;
@@ -204,7 +212,7 @@ B_t/B_0,\;
 \end{aligned}
 \end{equation}
 
-By convention we treat $(\eta_t,\mu_t,\lambda_t)$ inside $g^{\text{progress}}_t$ as the \emph{currently active} optimizer hyperparameters before the teacher issues $a_t$; the action may overwrite $\eta_t$ (and thus the effective step-size behaviour) for the subsequent update segment.
+By convention we treat $(\eta_t,\mu_t,\lambda^{\mathrm{wd}}_t)$ inside $g^{\text{progress}}_t$ as the \emph{currently active} optimizer hyperparameters before the teacher issues $a_t$; the action may overwrite $\eta_t$ (and thus the effective step-size behaviour) for the subsequent update segment.
 
 
 \paragraph{Action parametrization and invariance.}
@@ -229,6 +237,144 @@ with $d_{\text{data}}$ fixed by the readout $\rho$ and independent of $N$; in th
 \begin{definition}[\MAESTRO{} teacher]\label{def:maestro}
 Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and $H$ a horizon. \MAESTRO{} is the policy $\pi_\phi$ that, at decision time $t$, observes the grouped state $S_t=\big(g^{\mathrm{data}}_t,g^{\mathrm{model}}_t,g^{\mathrm{progress}}_t\big)$ defined in \S\ref{sec:state}, and emits actions $a_t=(w_t,\eta_t,u_t)$ where $w_t\in\Delta^{N-1}$ are per-dataset mixture weights produced by a permutation-equivariant head applied to $\{\phi(z_{t,i})\}_i$, $\eta_t$ is a bounded learning rate, and $u_t\in(0,1)$ is a usage fraction. The student updates by sampling $m_t=\lfloor u_t B_t\rfloor$ examples \emph{with replacement} from $\sum_i w_{t,i}\mathcal D_i$ and applying $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) at step size $\eta_t$. The episode is optimized as a constrained MDP with cost $c_t=m_t$ and reward defined from $\MacroAcc$ as in \S\ref{sec:mdp}.
 \end{definition}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{
+\begin{tikzpicture}[>=stealth, thick,
+  every node/.style={font=\LARGE},
+  block/.style={rectangle, draw, minimum width=2.8cm, minimum height=1.2cm, align=center},
+  input/.style={block, fill=blue!10},
+  process/.style={block, fill=green!10},
+  output/.style={block, fill=orange!10},
+  setblock/.style={block, fill=purple!10},
+  logit/.style={block, fill=cyan!10, minimum width=2.2cm, minimum height=0.8cm},
+  squash/.style={block, fill=yellow!10, minimum width=2.2cm, minimum height=0.8cm}
+]
+
+% Top row - Input datasets (horizontal above encoder)
+\node[input] (z1) at (0,0) {$z_{t,1}$};
+\node[input] (z2) at (3.5,0) {$z_{t,2}$};
+\node (zdots) at (6,0) {$\cdots$};
+\node[input] (zN) at (8.5,0) {$z_{t,N}$};
+
+% Encoder layer
+\node[process] (phi) at (4.4,-3) {$\phi_\psi$};
+
+% Encoded representations (horizontal row, to the left of mean pool)
+\node[setblock] (phiz1) at (0,-6) {$\phi(z_{t,1})$};
+\node[setblock] (phiz2) at (3.5,-6) {$\phi(z_{t,2})$};
+\node (phizdots) at (6,-6) {$\cdots$};
+\node[setblock] (phizN) at (8.5,-6) {$\phi(z_{t,N})$};
+
+% Additional inputs (above concatenate)
+\node[input] (gmodel) at (18,0) {$g^{\text{model}}_t$};
+\node[input] (gprog) at (21,0) {$g^{\text{progress}}_t$};
+
+% Concatenate (moved up, to the right)
+\node[process, minimum width=3.5cm, minimum height=2cm] (concat) at (18,-5) {Concatenate};
+
+% Mean pool (below encoded representations)
+\node[process, minimum height=2cm] (meanpool) at (9,-9) {Mean Pool};
+
+% Readout
+\node[process] (rho) at (13,-9) {$\rho$};
+
+% Data embedding
+\node[block, fill=yellow!20] (gdata) at (15,0) {$g^{\text{data}}_t$};
+
+% State (below concat and gdata)
+\node[block, fill=yellow!20, minimum width=3.5cm] (state) at (18,-10) {$S_t$};
+
+% Policy heads (spread horizontally)
+\node[output] (mixhead) at (3.5,-12) {$h_{\text{mix}}$};
+\node[output] (lrhead) at (12,-12) {$h_{\eta}$};
+\node[output] (usagehead) at (18,-12) {$h_{u}$};
+
+% Per-dataset logits
+\node[logit] (alpha1) at (0,-14) {$\alpha_{t,1}$};
+\node[logit] (alpha2) at (3,-14) {$\alpha_{t,2}$};
+\node (alphadots) at (5,-14) {$\cdots$};
+\node[logit] (alphaN) at (7,-14) {$\alpha_{t,N}$};
+
+% Squashing/normalization layers
+\node[squash] (softmax) at (3.5,-15.5) {softmax};
+\node[squash] (bounded) at (12,-15.5) {bounded\\squash};
+\node[squash] (sigmoid) at (18,-15.5) {sigmoid};
+
+% Final outputs (bottom row)
+\node[output, fill=red!20] (w1) at (0,-18) {$w_{t,1}$};
+\node[output, fill=red!20] (w2) at (3,-18) {$w_{t,2}$};
+\node (wdots) at (5,-18) {$\cdots$};
+\node[output, fill=red!20] (wN) at (7,-18) {$w_{t,N}$};
+\node[output, fill=red!20] (eta) at (12,-18) {$\eta_t$};
+\node[output, fill=red!20] (usage) at (18,-18) {$u_t$};
+
+% Arrows - Inputs to encoder
+\draw[->] (z1) -- (phi);
+\draw[->] (z2) -- (phi);
+\draw[->] (zN) -- (phi);
+
+% Arrows - Encoder to encoded representations
+\draw[->] (phi) -- (phiz1);
+\draw[->] (phi) -- (phiz2);
+\draw[->] (phi) -- (phizN);
+
+% Arrows - Encoded to mean pool
+\draw[->] (phiz1) -- (meanpool);
+\draw[->] (phiz2) -- (meanpool);
+\draw[->] (phizN) -- (meanpool);
+
+% Arrows - Additional inputs to concat
+\draw[->] (gmodel) -- (concat);
+\draw[->] (gprog) -- (concat);
+
+% Arrows - Mean pool through readout to gdata
+\draw[->] (meanpool) -- (rho);
+\draw[->] (rho) -- (gdata);
+
+% Arrows - gdata and concat to state
+\draw[->] (gdata) -- (concat);
+\draw[->] (concat) -- (state);
+
+% Arrows - State to policy heads
+\draw[->] (state) -- (mixhead);
+\draw[->] (state) -- (lrhead);
+\draw[->] (state) -- (usagehead);
+
+% Dashed arrows - Encoded representations to mix head
+\draw[->, dashed] (phiz1) -- (mixhead);
+\draw[->, dashed] (phiz2) -- (mixhead);
+\draw[->, dashed] (phizN) -- (mixhead);
+
+% Arrows - Mix head to per-dataset logits
+\draw[->] (mixhead) -- (alpha1);
+\draw[->] (mixhead) -- (alpha2);
+\draw[->] (mixhead) -- (alphaN);
+
+% Arrows - Logits to softmax
+\draw[->] (alpha1) -- (softmax);
+\draw[->] (alpha2) -- (softmax);
+\draw[->] (alphaN) -- (softmax);
+
+% Arrows - Other policy heads to squashing functions
+\draw[->] (lrhead) -- (bounded);
+\draw[->] (usagehead) -- (sigmoid);
+
+% Arrows - Softmax to mixture weights
+\draw[->] (softmax) -- (w1);
+\draw[->] (softmax) -- (w2);
+\draw[->] (softmax) -- (wN);
+
+% Arrows - Squashing functions to outputs
+\draw[->] (bounded) -- (eta);
+\draw[->] (sigmoid) -- (usage);
+
+\end{tikzpicture}
+}
+\caption{\textbf{Architecture of the \MAESTRO{} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared $\phi_\psi$ and mean-pooled via $\rho$ to form $g^{\text{data}}_t$. Combined with $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, this yields state $S_t$. The shared mixture head $h_{\text{mix}}$ is applied to each dataset embedding $\phi(z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha_{t,i}\}_{i=1}^N$, which are collectively normalized via softmax to obtain valid mixture weights $w_t\in\Delta^{N-1}$. Separate heads emit learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring the policy scales to any number of datasets.}
+\label{fig:policy-network}
+\end{figure}
 
 \begin{definition}[Approximate Markovity of the grouped state]\label{def:approx-markov-tight}
 Fix a predictor class $\mathcal F$ and thresholds $(\delta,\varepsilon)\in(0,1)\times[0,1)$. We say the grouped observation $S_t$ is \emph{$(\delta,\varepsilon)$-approximately Markov} for the training dynamics if there exists $\hat F\in\mathcal F$ such that the one-step prediction achieves $R^2\!\left(S_{t+1};\,\hat F(S_t,a_t)\right)\ge \delta$ and the marginal improvement from adding a short history is small: $\Delta R^2 \equiv R^2\!\left(S_{t+1};\,\hat F(S_t,a_t,S_{t-1},a_{t-1})\right)-R^2\!\left(S_{t+1};\,\hat F(S_t,a_t)\right)\le \varepsilon$. In experiments we report $R^2$ and $\Delta R^2$ for a fixed $\mathcal F$ (MLP) as diagnostics of approximate Markovity.
@@ -267,10 +413,12 @@ This separates the effects of step size and data volume; any residual coupling i
       \State \Comment{build grouped state on fixed probes}
       \State For each dataset $i$, compute probe statistics and $z_{t,i}$; set $h_t=\rho\!\big(\tfrac{1}{N}\sum_i \phi(z_{t,i})\big)\,\Vert\,g^{\text{model}}_t\,\Vert\,g^{\text{progress}}_t$
       \State Emit $\{\alpha_{t,i}\}$, $\eta_t$, $u_t$; set $w_t=\mathrm{softmax}(\{\alpha_{t,i}\})$
-      \State Apply $K_t$ SGD steps using batches drawn \emph{with replacement} from mixture $w_t$ with step size $\eta_t$ (\MAESTRO{})
-      \State $m_t=\lfloor u_t B_t\rfloor$;\quad $B_{t+1}=B_t-m_t$
-      \State (Optional, finite pools) re-mask any dataset with $n_i=0$
-      \State Observe $(S_{t+1}, r_t)$
+      \State $m_t=\lfloor u_t B_t\rfloor$;\quad $K_t=\lceil m_t/b\rceil$
+      \State Draw mini-batches \emph{with replacement} from mixture $w_t$; apply $K_t$ SGD steps at step size $\eta_t$
+      \State $B_{t+1}=B_t-m_t$
+      \State Compute $r_t \leftarrow \MacroAcc_{t+1}-\MacroAcc_t$
+      \State Observe $S_{t+1}$
+
     \EndFor
   \EndFor
   \State Compute advantages; update $\phi,\psi$ with PPO and dual variable $\lambda$ (per-episode update)
