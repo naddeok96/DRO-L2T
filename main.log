@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.11.17)  28 OCT 2025 20:40
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022) (preloaded format=pdflatex 2022.11.17)  28 OCT 2025 21:00
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -485,48 +485,44 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1
 
 {c:/texlive/2022/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] [2] [3]
-Overfull \hbox (9.17047pt too wide) in paragraph at lines 100--107
-[][]\OT1/cmr/bx/n/10.95 Definition 1 \OT1/cmr/m/n/10.95 (Ap-prox-i-mate Markovity)\OT1/cmr/bx/n/10.95 . []\OT1/cmr/m/it/10.95 Let $\OMS/cmsy/m/n/10.95 F$ \OT1/cmr/m/it/10.95 be a rich pre-dic-tor class. De-fine $\OMS/cmsy/m/n/10.95 E[] \U/msa/m/n/10.95 , [][] \U/msb/m/n/10.95 E\OMS/cmsy/m/n/10.95 k\OML/cmm/m/it/10.95 S[] \OMS/cmsy/m/n/10.95 ^^@
- []
-
 
 LaTeX Font Warning: Font shape `OT1/cmr/m/scit' undefined
-(Font)              using `OT1/cmr/m/sc' instead on input line 110.
+(Font)              using `OT1/cmr/m/sc' instead on input line 119.
 
-
-Overfull \hbox (2.28357pt too wide) in paragraph at lines 149--150
+[4]
+Overfull \hbox (2.28357pt too wide) in paragraph at lines 158--159
 []\OT1/cmr/m/it/10.95 Predictive per-for-mance & un-cer-tainty: \OT1/cmr/m/n/10.95 macro-Acc/F1 (when la-bels avail-able), mean NLL (length-
  []
 
-[4]
-Overfull \hbox (157.01132pt too wide) detected at line 169
+
+Overfull \hbox (157.01132pt too wide) detected at line 178
 []
  []
 
 
-Overfull \hbox (67.05283pt too wide) detected at line 176
+Overfull \hbox (67.05283pt too wide) detected at line 185
 \OML/cmm/m/it/10.95 g[] \OT1/cmr/m/n/10.95 = [] [] \OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 ^^R\OMS/cmsy/m/n/10.95 j\OML/cmm/m/it/10.95 ;  [] [];  [] \OT1/cmr/m/n/10.95 = [][] \OMS/cmsy/m/n/10.95 ^^@ [][]\OML/cmm/m/it/10.95 ;  [];  []\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 ^^L[]; ^^L[]\OT1/cmr/m/n/10.95 )\OML/cmm/m/it/10.95 ;  [][]:
  []
 
 
-Overfull \hbox (154.55737pt too wide) detected at line 182
+Overfull \hbox (154.55737pt too wide) detected at line 191
 \OML/cmm/m/it/10.95 g[] \OT1/cmr/m/n/10.95 = []\OML/cmm/m/it/10.95 t=H;  B[]=B[];  [];  [];  \OT1/cmr/m/n/10.95 ^^A[]\OML/cmm/m/it/10.95 ;  [];  [];  [] \U/msa/m/n/10.95 \\OT1/cmr/m/n/10.95 (\OMS/cmsy/m/n/10.95 r[]\OML/cmm/m/it/10.95 ; \OMS/cmsy/m/n/10.95 r[]\OT1/cmr/m/n/10.95 )\OML/cmm/m/it/10.95 ;  []=[][][]:
  []
 
 [5]
-Overfull \hbox (79.13553pt too wide) in paragraph at lines 217--229
+Overfull \hbox (79.13553pt too wide) in paragraph at lines 226--238
  []\OT1/cmr/bx/n/10.95 Budget as a CMDP.[] \OT1/cmr/m/n/10.95 Bud-get con-sump-tion $\OML/cmm/m/it/10.95 c[] \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 m[]$ \OT1/cmr/m/n/10.95 in-duces a con-strained MDP $[][]  \U/msb/m/n/10.95 E\OT1/cmr/m/n/10.95 [[][] \OML/cmm/m/it/10.95 r[]\OT1/cmr/m/n/10.95 ] [] \U/msb/m/n/10.95 E\OT1/cmr/m/n/10.95 [[][] \OML/cmm/m/it/10.95 c[]\OT1/cmr/m/n/10.95 ] \OMS/cmsy/m/n/10.95 ^^T
  []
 
 [6]
-Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 275.
+Package hyperref Info: bookmark level for unknown algorithm defaults to 0 on input line 284.
 
-Underfull \hbox (badness 10000) in paragraph at lines 284--285
+Underfull \hbox (badness 10000) in paragraph at lines 293--294
 [] \OT1/cmr/m/n/10.95 For each dataset $\OML/cmm/m/it/10.95 i$\OT1/cmr/m/n/10.95 , com-pute probe statis-tics and $\OML/cmm/m/it/10.95 z[]$\OT1/cmr/m/n/10.95 ; set $\OML/cmm/m/it/10.95 h[] \OT1/cmr/m/n/10.95 =
  []
 
 [7] [8]
-Underfull \hbox (badness 1092) in paragraph at lines 385--385
+Underfull \hbox (badness 1092) in paragraph at lines 394--394
 []\OT1/cmr/m/n/10.95 Figure 2: |Zero-shot large-model trans-fer (e.g., ViT de-tec-tion) and OOD re-gions (higher
  []
 
@@ -535,18 +531,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: C8C011E4406E11B65141F6DF05B77124;2616.
  ) 
 Here is how much of TeX's memory you used:
- 14110 strings out of 474971
- 224846 string characters out of 5780120
- 589361 words of memory out of 5000000
- 35339 multiletter control sequences out of 15000+600000
+ 14113 strings out of 474971
+ 224885 string characters out of 5780120
+ 588408 words of memory out of 5000000
+ 35340 multiletter control sequences out of 15000+600000
  482541 words of font info for 77 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 72i,12n,77p,2285b,584s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 72i,12n,77p,2285b,570s stack positions out of 10000i,1000n,20000p,200000b,200000s
 {c:/texlive/2022/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}<c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/cm/cmti8.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb><c:/texlive/2022/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (12 pages, 312736 bytes).
+Output written on main.pdf (12 pages, 313870 bytes).
 PDF statistics:
- 371 PDF objects out of 1000 (max. 8388607)
- 309 compressed objects within 4 object streams
- 86 named destinations out of 1000 (max. 500000)
+ 374 PDF objects out of 1000 (max. 8388607)
+ 312 compressed objects within 4 object streams
+ 88 named destinations out of 1000 (max. 500000)
  129 words of extra memory for PDF output out of 10000 (max. 10000000)
 
