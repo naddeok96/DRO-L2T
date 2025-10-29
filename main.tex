@@ -140,7 +140,9 @@ For each dataset $i$, a fixed probe produces a compact, task-agnostic descriptor
 \(
 \mathrm{ECE}_5=\sum_{b=1}^5 \tfrac{|\mathcal{B}_b|}{n}\,|\mathrm{acc}(\mathcal{B}_b)-\mathrm{conf}(\mathcal{B}_b)|,
 \)
-the log-EMA gradient norm and its cosine similarity to a running global gradient, a log effective rank $ \log r_{\mathrm{eff}}(\Sigma_i)$ of the probe embedding covariance $\Sigma_i$, and $\log|\mathcal{D}_i|$. These quantities are label-lean, architecture-agnostic, and robustly normalized (median/IQR EMAs), and together they reveal when a dataset is hard, miscalibrated, conflicting, or redundant—precisely the factors a curriculum should adapt to. To obtain a permutation- and cardinality-invariant global summary we apply a DeepSets encoder with mean pooling:
+the log-EMA gradient norm and its cosine similarity to a running global gradient, a log effective rank $ \log r_{\mathrm{eff}}(\Sigma_i)$ of the probe embedding covariance $\Sigma_i$ (with $r_{\mathrm{eff}}(\Sigma)=\frac{(\sum_j \lambda_j)^2}{\sum_j \lambda_j^2}$ for eigenvalues $\{\lambda_j\}$), and $\log|\mathcal{D}_i|$. These quantities are label-lean, architecture-agnostic, and robustly normalized (median/IQR EMAs), and together they reveal when a dataset is hard, miscalibrated, conflicting, or redundant—precisely the factors a curriculum should adapt to. To obtain a permutation- and cardinality-invariant global summary we apply a DeepSets encoder with mean pooling:
+
+
 \begin{equation}
 g^{\text{data}}_t \;=\; \rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi(z_{t,i})\right),
 \label{eq:deepsets-global}
@@ -212,6 +214,8 @@ B_t/B_0,\;
 \end{aligned}
 \end{equation}
 
+Here, $\Delta\theta_t \triangleq \theta_t - \theta_{t-1}$ denotes the previous segment update used in $\mathrm{UPR}_t$ (with $\mathrm{UPR}_1=0$).
+
 By convention we treat $(\eta_t,\mu_t,\lambda^{\mathrm{wd}}_t)$ inside $g^{\text{progress}}_t$ as the \emph{currently active} optimizer hyperparameters before the teacher issues $a_t$; the action may overwrite $\eta_t$ (and thus the effective step-size behaviour) for the subsequent update segment.
 
 
@@ -243,53 +247,56 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 \resizebox{\textwidth}{!}{
 \begin{tikzpicture}[>=stealth, thick,
   every node/.style={font=\LARGE},
-  block/.style={rectangle, draw, minimum width=2.8cm, minimum height=1.2cm, align=center},
+  block/.style={rectangle, draw, rounded corners=2pt, minimum width=2.8cm, minimum height=1.2cm, align=center},
   input/.style={block, fill=blue!10},
-  process/.style={block, fill=green!10},
-  output/.style={block, fill=orange!10},
+  det/.style={block, fill=gray!15},
+  param/.style={block, fill=green!18, double, double distance=1pt},
+  output/.style={block, fill=orange!12},
   setblock/.style={block, fill=purple!10},
   logit/.style={block, fill=cyan!10, minimum width=2.2cm, minimum height=0.8cm},
-  squash/.style={block, fill=yellow!10, minimum width=2.2cm, minimum height=0.8cm}
+  action/.style={block, fill=red!20},
+  legendbox/.style={draw, rounded corners=2pt, fill=white}
 ]
 
-% Top row - Input datasets (horizontal above encoder)
+% Top row - per-dataset descriptors
 \node[input] (z1) at (0,0) {$z_{t,1}$};
 \node[input] (z2) at (3.5,0) {$z_{t,2}$};
 \node (zdots) at (6,0) {$\cdots$};
 \node[input] (zN) at (8.5,0) {$z_{t,N}$};
 
-% Encoder layer
-\node[process] (phi) at (4.4,-3) {$\phi_\psi$};
+% Encoder (learnable)
+\node[param] (phi) at (4.4,-3) {$\phi_{\psi}$\\ \footnotesize shared across $i$};
 
-% Encoded representations (horizontal row, to the left of mean pool)
+% Encoded reps
 \node[setblock] (phiz1) at (0,-6) {$\phi(z_{t,1})$};
 \node[setblock] (phiz2) at (3.5,-6) {$\phi(z_{t,2})$};
 \node (phizdots) at (6,-6) {$\cdots$};
 \node[setblock] (phizN) at (8.5,-6) {$\phi(z_{t,N})$};
 
-% Additional inputs (above concatenate)
+% Mean pool (deterministic) and readout (learnable)
+\node[det, minimum height=2cm] (meanpool) at (9,-9) {Mean Pool};
+\node[param] (rho) at (13,-9) {$\rho_{\psi}$};
+
+% Data embedding
+\node[output, fill=yellow!20] (gdata) at (15,0) {$g^{\text{data}}_t$};
+
+% Additional inputs
 \node[input] (gmodel) at (18,0) {$g^{\text{model}}_t$};
 \node[input] (gprog) at (21,0) {$g^{\text{progress}}_t$};
 
-% Concatenate (moved up, to the right)
-\node[process, minimum width=3.5cm, minimum height=2cm] (concat) at (18,-5) {Concatenate};
+% Concatenate (deterministic)
+\node[det, minimum width=3.5cm, minimum height=2cm] (concat) at (18,-5) {Concatenate};
 
-% Mean pool (below encoded representations)
-\node[process, minimum height=2cm] (meanpool) at (9,-9) {Mean Pool};
+% State
+\node[output, fill=yellow!20, minimum width=3.5cm] (state) at (18,-10) {$S_t$};
 
-% Readout
-\node[process] (rho) at (13,-9) {$\rho$};
+% Policy heads (learnable)
+\node[param] (mixhead) at (3.5,-12) {$h_{\text{mix}}$};
+\node[param] (lrhead) at (12,-12) {$h_{\eta}$};
+\node[param] (usagehead) at (18,-12) {$h_{u}$};
 
-% Data embedding
-\node[block, fill=yellow!20] (gdata) at (15,0) {$g^{\text{data}}_t$};
-
-% State (below concat and gdata)
-\node[block, fill=yellow!20, minimum width=3.5cm] (state) at (18,-10) {$S_t$};
-
-% Policy heads (spread horizontally)
-\node[output] (mixhead) at (3.5,-12) {$h_{\text{mix}}$};
-\node[output] (lrhead) at (12,-12) {$h_{\eta}$};
-\node[output] (usagehead) at (18,-12) {$h_{u}$};
+% Optional value head (learnable critic)
+\node[param, minimum width=3.5cm] (valuehead) at (23,-10) {$V_{\psi}(S_t)$};
 
 % Per-dataset logits
 \node[logit] (alpha1) at (0,-14) {$\alpha_{t,1}$};
@@ -297,82 +304,99 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 \node (alphadots) at (5,-14) {$\cdots$};
 \node[logit] (alphaN) at (7,-14) {$\alpha_{t,N}$};
 
-% Squashing/normalization layers
-\node[squash] (softmax) at (3.5,-15.5) {softmax};
-\node[squash] (bounded) at (12,-15.5) {bounded\\squash};
-\node[squash] (sigmoid) at (18,-15.5) {sigmoid};
+% Squashing/normalization layers (deterministic)
+\node[det] (softmax) at (3.5,-15.5) {softmax};
+\node[det] (bounded)  at (12,-15.5) {bounded\\squash};
+\node[det] (sigmoid)  at (18,-15.5) {sigmoid};
 
-% Final outputs (bottom row)
-\node[output, fill=red!20] (w1) at (0,-18) {$w_{t,1}$};
-\node[output, fill=red!20] (w2) at (3,-18) {$w_{t,2}$};
+% Final outputs
+\node[action] (w1) at (0,-18) {$w_{t,1}$};
+\node[action] (w2) at (3,-18) {$w_{t,2}$};
 \node (wdots) at (5,-18) {$\cdots$};
-\node[output, fill=red!20] (wN) at (7,-18) {$w_{t,N}$};
-\node[output, fill=red!20] (eta) at (12,-18) {$\eta_t$};
-\node[output, fill=red!20] (usage) at (18,-18) {$u_t$};
+\node[action] (wN) at (7,-18) {$w_{t,N}$};
+\node[action] (eta) at (12,-18) {$\eta_t$};
+\node[action] (usage) at (18,-18) {$u_t$};
 
 % Arrows - Inputs to encoder
 \draw[->] (z1) -- (phi);
 \draw[->] (z2) -- (phi);
 \draw[->] (zN) -- (phi);
 
-% Arrows - Encoder to encoded representations
+% Encoder to encoded representations
 \draw[->] (phi) -- (phiz1);
 \draw[->] (phi) -- (phiz2);
 \draw[->] (phi) -- (phizN);
 
-% Arrows - Encoded to mean pool
+% Encoded to mean pool
 \draw[->] (phiz1) -- (meanpool);
 \draw[->] (phiz2) -- (meanpool);
 \draw[->] (phizN) -- (meanpool);
 
-% Arrows - Additional inputs to concat
-\draw[->] (gmodel) -- (concat);
-\draw[->] (gprog) -- (concat);
-
-% Arrows - Mean pool through readout to gdata
+% Mean pool -> readout -> gdata
 \draw[->] (meanpool) -- (rho);
 \draw[->] (rho) -- (gdata);
 
-% Arrows - gdata and concat to state
+% Additional inputs to concat
+\draw[->] (gmodel) -- (concat);
+\draw[->] (gprog) -- (concat);
+
+% gdata and concat to state
 \draw[->] (gdata) -- (concat);
 \draw[->] (concat) -- (state);
 
-% Arrows - State to policy heads
+% State to policy heads
 \draw[->] (state) -- (mixhead);
 \draw[->] (state) -- (lrhead);
 \draw[->] (state) -- (usagehead);
 
-% Dashed arrows - Encoded representations to mix head
+% Encoded reps to mix head (shared head; show dependence)
 \draw[->, dashed] (phiz1) -- (mixhead);
 \draw[->, dashed] (phiz2) -- (mixhead);
 \draw[->, dashed] (phizN) -- (mixhead);
 
-% Arrows - Mix head to per-dataset logits
+% Mix head to per-dataset logits
 \draw[->] (mixhead) -- (alpha1);
 \draw[->] (mixhead) -- (alpha2);
 \draw[->] (mixhead) -- (alphaN);
 
-% Arrows - Logits to softmax
+% Logits to softmax
 \draw[->] (alpha1) -- (softmax);
 \draw[->] (alpha2) -- (softmax);
 \draw[->] (alphaN) -- (softmax);
 
-% Arrows - Other policy heads to squashing functions
+% Other heads to squashing functions
 \draw[->] (lrhead) -- (bounded);
 \draw[->] (usagehead) -- (sigmoid);
 
-% Arrows - Softmax to mixture weights
+% Softmax to mixture weights
 \draw[->] (softmax) -- (w1);
 \draw[->] (softmax) -- (w2);
 \draw[->] (softmax) -- (wN);
 
-% Arrows - Squashing functions to outputs
+% Squashing functions to outputs
 \draw[->] (bounded) -- (eta);
 \draw[->] (sigmoid) -- (usage);
 
+% Value head connection (critic; dashed to indicate not used for actions)
+\draw[->, dashed] (state) -- (valuehead);
+
+% Legend
+\node[legendbox, anchor=north east] (legend) at (21.5,1.4) {
+  \begin{tikzpicture}[every node/.style={font=\large}]
+    \node[param, minimum width=0.8cm, minimum height=0.6cm] (l1) {};
+    \node[anchor=west] at (1.2,0) {Learnable (trainable)};
+    \node[det, minimum width=0.8cm, minimum height=0.6cm] (l2) at (0,-1.0) {};
+    \node[anchor=west] at (1.2,-1.0) {Deterministic op};
+    \node[input, minimum width=0.8cm, minimum height=0.6cm] (l3) at (0,-2.0) {};
+    \node[anchor=west] at (1.2,-2.0) {Observed features};
+    \node[action, minimum width=0.8cm, minimum height=0.6cm] (l4) at (0,-3.0) {};
+    \node[anchor=west] at (1.2,-3.0) {Actions / outputs};
+  \end{tikzpicture}
+};
+
 \end{tikzpicture}
 }
-\caption{\textbf{Architecture of the \MAESTRO{} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared $\phi_\psi$ and mean-pooled via $\rho$ to form $g^{\text{data}}_t$. Combined with $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, this yields state $S_t$. The shared mixture head $h_{\text{mix}}$ is applied to each dataset embedding $\phi(z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha_{t,i}\}_{i=1}^N$, which are collectively normalized via softmax to obtain valid mixture weights $w_t\in\Delta^{N-1}$. Separate heads emit learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring the policy scales to any number of datasets.}
+\caption{\textbf{\MAESTRO{} policy network with learnable vs.\ fixed elements.} Double-bordered green blocks are \emph{learnable} (parameters trained by PPO): the per-dataset encoder $\phi$, the readout $\rho$, policy heads $h_{\text{mix}}, h_{\eta}, h_{u}$, and the value head $V_\psi$. Gray blocks are deterministic ops. Inputs $z_{t,i}, g^{\text{model}}_t, g^{\text{progress}}_t$ are observed; outputs $w_t,\eta_t,u_t$ are the action components. The mixture head is shared across datasets (dashed arrows show its dependence on per-dataset embeddings).}
 \label{fig:policy-network}
 \end{figure}
 
