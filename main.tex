@@ -61,7 +61,7 @@ We study \emph{learning to teach}: a reinforcement-learning (RL) \emph{teacher} 
 
 A central challenge is engineering the teacher’s interface so that it is (1) \emph{Markov}, enabling stable RL control; (2) \emph{invariant in the number of datasets}, so one policy naturally scales to any number of datasets and any permutation; and (3) \emph{portable} across task families and architectures, so a single teacher trained on small, inexpensive episodes can be deployed in varied settings. Existing learning-to-teach approaches demonstrate the promise of dynamic data selection and learned losses \citep{fan2018l2t,wu2018l2tloss}, yet typically do not combine a formal Markov interface with a \emph{set-based} design for many datasets and a compact, task-agnostic observation that can transfer broadly. Meanwhile, results in group-robust optimization argue for objectives that explicitly guard minority performance \citep{hashimoto2018fairness,sagawa2020dro}; we bring that spirit to curriculum design by reallocating training mixture and budget over time.
 
-\textbf{Our approach.} We formalize the hidden state of training under SGD and construct a grouped, task/architecture/optimizer-agnostic observation with three components: \emph{(A) dataset-level embeddings} built via DeepSets from small, fixed probes (loss/uncertainty histograms, gradient-norm moments, diversity sketches, light meta-statistics), \emph{(B) model-complexity} summaries, and \emph{(C) training-progress} dynamics. A set-based encoder with mean pooling ensures permutation and cardinality invariance; shared per-dataset policy heads emit mixture logits $w_t$ for any number of datasets. Additional heads control learning rate and usage, allowing the teacher to modulate \emph{both} exposure and step size. We adopt a CMDP view over budget. We denote this unified design by \MAESTRO{}. 
+{\textbf{Our approach.} We formalize the hidden state of training under SGD and construct a grouped, task/architecture/optimizer-agnostic observation with three components: \emph{(A) dataset-level embeddings} built via DeepSets from small, fixed probes (loss/uncertainty histograms, gradient-norm moments, diversity sketches, light meta-statistics), \emph{(B) model-complexity} summaries, and \emph{(C) training-progress} dynamics. A set-based encoder with mean pooling ensures permutation and cardinality invariance; shared per-dataset policy heads emit per-dataset logits (normalized to $w_t$) for any number of datasets. Additional heads control learning rate and usage, allowing the teacher to modulate \emph{both} exposure and step size. We adopt a CMDP view over budget. We denote this unified design by \MAESTRO{}.\par}
 
 \textbf{Contributions.} (1) We introduce \MAESTRO{}, a Markov teacher--student formulation with a \emph{grouped, universal state} (dataset embeddings + model complexity + training progress) that is compact yet empirically \emph{approximately} Markov. (2) A \emph{set-invariant} policy/value parameterization whose per-dataset heads and mean-pooled encodings produce valid mixtures for any number of datasets and any permutation. (3) A meta-training/evaluation protocol demonstrating \emph{portability} across task families and architectures, including leave-one-family-out and zero-/few-shot transfer. (4) A CMDP treatment that jointly controls mixture, learning rate, and usage, improving balanced outcomes (macro metrics) over uniform sampling, myopic/bandit schedulers, and heuristic curricula. Conceptually, \MAESTRO{} operationalizes the group-robust principle—do not ignore small groups—through an adaptive curriculum rather than a static objective.
 
@@ -122,9 +122,9 @@ The consumable cost $c_t=m_t$ induces a constrained MDP:
 We optimize this via the standard Lagrangian
 \begin{equation}
 \label{eq:lagrangian}
-\mathcal{L}(\lambda) \;=\; \E\!\left[\sum_{t=1}^{H} \big(r_t-\lambda\,c_t\big)\right],
+\mathcal{L}(\lambda_{\text{cmdp}}) \;=\; \E\!\left[\sum_{t=1}^{H} \big(r_t-\lambda_{\text{cmdp}}\,c_t\big)\right],
 \end{equation}
-with per-episode dual updates $\lambda \leftarrow \big[\lambda + \eta_\lambda\big(\sum_{t=1}^{H} c_t - B_0\big)\big]_+$.
+with per-episode dual updates $\lambda_{\text{cmdp}} \leftarrow \big[\lambda_{\text{cmdp}} + \eta_\lambda\big(\sum_{t=1}^{H} c_t - B_0\big)\big]_+$.
 
 \subsection{A Compact, Grouped Observation}\label{sec:state}
 To control stochastic gradient dynamics effectively, the teacher must observe just enough about (i) what the \emph{data} currently elicits from the student, (ii) how the \emph{update rule} is configured, and (iii) where the run sits in its \emph{training trajectory}. We therefore expose a grouped, task/architecture-agnostic state
@@ -150,9 +150,10 @@ g^{\text{data}}_t \;=\; \rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi(z_{t,i})\right)
 \end{equation}
 where $\phi$ and $\rho$ are shared neural networks. The per-dataset descriptors themselves are not part of the fixed-length state fed to the value function; they are consumed inside the policy to emit per-dataset actions while preserving invariance. Let \(g_t \triangleq \frac{1}{K_t}\sum_{k=1}^{K_t} \nabla_\theta \mathcal{L}(\theta_t; \mathcal{B}_{t,k})\) 
 be the average per-step gradient over the \(K_t\) mini-batches drawn at decision time \(t\). 
-Let \(\bar g_t = \mathrm{EMA}_\beta(g_t)\) be its exponential moving average. 
-For each dataset \(i\), define \(g_{t,i} \triangleq \nabla_\theta \mathcal{L}(\theta_t; \mathcal{P}_{t,i})\), 
+Let \(\bar g_t = \mathrm{EMA}_\beta(g_t)\) be its exponential moving average.
+For each dataset \(i\), define \(g_{t,i} \triangleq \nabla_\theta \mathcal{L}(\theta_t; \mathcal{P}_{t,i})\),
 the gradient on a fixed small probe mini-batch \(\mathcal{P}_{t,i}\subset\mathcal{D}_i\).
+All gradient-based quantities included in the state \(S_t\) use a one-segment lag: they are computed from the \emph{most recently completed} update window so that they are available prior to choosing \(a_t\).
 Collecting these descriptors yields the dataset-level summary vector used throughout the policy and value networks:
 
 \begin{equation}
@@ -221,7 +222,7 @@ This ensures $\mathrm{UPR}_t$ is available when forming $S_t$ prior to action se
 By convention we treat $(\eta_t,\mu_t,\lambda^{\mathrm{wd}}_t)$ inside $g^{\text{progress}}_t$ as the \emph{currently active} optimizer hyperparameters before the teacher issues $a_t$; the action may overwrite $\eta_t$ (and thus the effective step-size behaviour) for the subsequent update segment.
 
 
-\paragraph{Action parametrization and invariance.}
+\paragraph{Action parameterization and invariance.}
 Although $S_t$ has constant length, the policy must output a valid mixture over an arbitrary number of datasets. We realize this by applying a shared head to each encoded element, producing per-dataset logits
 \begin{equation}
 \alpha_{t,i}=h_{\text{mix}}\!\big(\phi(z_{t,i}),\, g^{\text{data}}_t,\, g^{\text{model}}_t,\, g^{\text{progress}}_t\big),
@@ -400,7 +401,7 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 \end{tikzpicture}
 }
 \caption{\textbf{Architecture and learnable components of the \MAESTRO{} policy network.} 
-Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared per-dataset encoder $\phi_\psi$ and mean-pooled via $\rho$ to form the data summary $g^{\text{data}}_t$. Combined with $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, this yields the state $S_t$. The shared mixture head $h_{\text{mix}}$ is applied to each dataset embedding $\phi(z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha_{t,i}\}_{i=1}^N$, which are normalized via softmax to obtain mixture weights $w_t\in\Delta^{N-1}$. Separate heads emit the learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring scalability to any number of datasets. Double-bordered green blocks denote \emph{learnable} components (trained via PPO): $\phi$, $\rho$, $h_{\text{mix}}$, $h_{\eta}$, $h_{u}$, and $V_\psi$. Gray blocks indicate deterministic operations. Inputs $z_{t,i}$, $g^{\text{model}}_t$, and $g^{\text{progress}}_t$ are observed, while outputs $w_t$, $\eta_t$, and $u_t$ are the action components. The mixture head is shared across datasets, with dashed arrows showing its dependence on per-dataset embeddings.}
+Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared per-dataset encoder $\phi_\psi$, \emph{mean-pooled}, and then passed through $\rho$ to form the data summary $g^{\text{data}}_t$. Combined with $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, this yields the state $S_t$. The shared mixture head $h_{\text{mix}}$ is applied to each dataset embedding $\phi(z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha_{t,i}\}_{i=1}^N$, which are normalized via softmax to obtain mixture weights $w_t\in\Delta^{N-1}$. Separate heads emit the learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring scalability to any number of datasets. Double-bordered green blocks denote \emph{learnable} components (trained via PPO): $\phi$, $\rho$, $h_{\text{mix}}$, $h_{\eta}$, $h_{u}$, and $V_\psi$. Gray blocks indicate deterministic operations. Inputs $z_{t,i}$, $g^{\text{model}}_t$, and $g^{\text{progress}}_t$ are observed, while outputs $w_t$, $\eta_t$, and $u_t$ are the action components. The mixture head is shared across datasets, with dashed arrows showing its dependence on per-dataset embeddings.}
 
 \label{fig:policy-network}
 \end{figure}
@@ -450,10 +451,12 @@ This separates the effects of step size and data volume; any residual coupling i
 
     \EndFor
   \EndFor
-  \State Compute advantages; update $\phi,\psi$ with PPO and dual variable $\lambda$ (per-episode update)
+  \State Compute advantages; update $\phi,\psi$ with PPO and dual variable $\lambda_{\text{cmdp}}$ (per-episode update)
 \EndFor
 \end{algorithmic}
 \end{algorithm}
+
+\textit{Implementation note: we use the CMDP dual variable $\lambda_{\text{cmdp}}$ during training.}
 
 \section{Experiments}
 \subsection{Cross-Task Meta-Training and Evaluation}
