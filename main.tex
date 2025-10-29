@@ -85,7 +85,7 @@ DeepSets \citep{zaheer2017deepsets} and Set Transformer \citep{lee2019settransfo
 Compared to \citet{fan2018l2t,wu2018l2tloss}, we (i) formalize a Markov teacher--student MDP and empirically diagnose \emph{approximate Markovity} of a compact \emph{grouped} observation; (ii) enforce \emph{number-of-datasets invariance} with set encoders and shared per-dataset heads; and (iii) target \emph{task/architecture invariance} via task-agnostic statistics (probabilities, losses, gradient magnitudes, diversity sketches) plus model/progress blocks. Relative to fairness and GroupDRO \citep{hashimoto2018fairness,sagawa2020dro}, we provide a complementary mechanism—\emph{adaptive curricula}—that can protect minority datasets without modifying the base loss.
 
 \section{Problem Formulation}
-We consider $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ drawn from an episode-specific task $\tau\sim\mathcal{T}$. A student model $f_\theta$ is trained under a teacher policy $\pi_\phi$ over horizon $H$ with initial budget $B_0$. Our objective emphasizes \emph{balanced} end performance (macro- or worst-dataset metrics), reflecting the practical risk that small, high-stakes datasets be overshadowed by large auxiliaries.
+We consider $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ drawn from an episode-specific task $\tau\sim\mathcal{T}$. A student model $f_\theta$ is trained under a teacher policy $\pi_\phi$ over horizon $H$ with initial budget $B_0$. Our objective emphasizes \emph{balanced} end performance (macro metrics), reflecting the practical risk that small, high-stakes datasets be overshadowed by large auxiliaries.
 
 \subsection{Markov Teacher--Student MDP}\label{sec:mdp}
 \paragraph{Definition (Markov property).}

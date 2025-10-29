@@ -20,10 +20,10 @@
 \citation{bengio2009curriculum,kumar2010selfpaced}
 \citation{fan2018l2t}
 \citation{wu2018l2tloss}
-\citation{hashimoto2018fairness}
-\citation{sagawa2020dro}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Learning to teach and curriculum RL.}{2}{section*.1}\protected@file@percent }
+\citation{hashimoto2018fairness}
+\citation{sagawa2020dro}
 \citation{kendall2018uncertainty,chen2018gradnorm}
 \citation{duan2016rl2,finn2017maml}
 \citation{jaderberg2017pbt,falkner2018bohb,snoek2012practical}
@@ -36,20 +36,20 @@
 \@writefile{toc}{\contentsline {paragraph}{Meta-learning and RL controllers.}{3}{section*.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Permutation-invariant encoders for sets.}{3}{section*.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Problem Formulation}{3}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Markov Teacher--Student MDP}{3}{subsection.3.1}\protected@file@percent }
-\newlabel{sec:mdp}{{3.1}{3}{Markov Teacher--Student MDP}{subsection.3.1}{}}
-\@writefile{toc}{\contentsline {paragraph}{Definition (Markov property).}{3}{section*.6}\protected@file@percent }
-\newlabel{eq:markov}{{1}{3}{Definition (Markov property)}{equation.3.1}{}}
-\citation{fan2018l2t}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Markov Teacher--Student MDP}{4}{subsection.3.1}\protected@file@percent }
+\newlabel{sec:mdp}{{3.1}{4}{Markov Teacher--Student MDP}{subsection.3.1}{}}
+\@writefile{toc}{\contentsline {paragraph}{Definition (Markov property).}{4}{section*.6}\protected@file@percent }
+\newlabel{eq:markov}{{1}{4}{Definition (Markov property)}{equation.3.1}{}}
 \newlabel{def:approx-markov-tight}{{1}{4}{Approximate Markovity}{definition.1}{}}
 \newlabel{def:maestro}{{2}{4}{\MAESTRO : Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization}{definition.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Hidden state and SGD dynamics.}{4}{section*.7}\protected@file@percent }
 \newlabel{assump:with-repl}{{1}{4}{With-replacement sampling}{assumption.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Observable state (grouped, task/model/optimizer-agnostic).}{4}{section*.8}\protected@file@percent }
+\citation{fan2018l2t}
 \newlabel{def:minimal}{{3}{5}{Grouped state: minimal-viable instantiation}{definition.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Confidence calibration (ECE-5).}{5}{section*.9}\protected@file@percent }
-\newlabel{prop:inject}{{2}{5}{Strict Markovity under information-preserving observation}{proposition.2}{}}
 \citation{zaheer2017deepsets}
+\newlabel{prop:inject}{{2}{6}{Strict Markovity under information-preserving observation}{proposition.2}{}}
 \@writefile{toc}{\contentsline {paragraph}{Reward (macro-accuracy across datasets) and episode termination.}{6}{section*.10}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Budget as a CMDP.}{6}{section*.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Number-of-Datasets Invariance}{6}{subsection.3.2}\protected@file@percent }
@@ -58,8 +58,8 @@
 \newlabel{eq:deepsets}{{3}{6}{State as a set}{equation.3.3}{}}
 \@writefile{toc}{\contentsline {paragraph}{Action as per-dataset logits.}{6}{section*.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Implication.}{6}{section*.14}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4}Method}{6}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Policy and Training}{6}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}Method}{7}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Policy and Training}{7}{subsection.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Action regularizers and barriers.}{7}{section*.15}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Student update semantics (removing confounds).}{7}{section*.16}\protected@file@percent }
 \@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces PPO teacher on a Markov, set-valued curriculum MDP (updated)\relax }}{7}{algorithm.1}\protected@file@percent }
@@ -68,8 +68,8 @@
 \@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{7}{section.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Cross-Task Meta-Training and Evaluation}{7}{subsection.5.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Task families.}{7}{section*.17}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Leave-one-family-out (LOFO).}{7}{section*.18}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Large-model transfer.}{7}{section*.19}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Leave-one-family-out (LOFO).}{8}{section*.18}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Large-model transfer.}{8}{section*.19}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Diagnostics.}{8}{section*.20}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Baselines.}{8}{section*.21}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Validating Markovity}{8}{subsection.5.2}\protected@file@percent }
@@ -82,8 +82,8 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Main Results (Placeholders)}{9}{subsection.5.4}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Learning curves (MacroAcc vs. steps) in cross-task and LOFO evaluations.\relax }}{9}{figure.caption.24}\protected@file@percent }
 \newlabel{fig:indist}{{1}{9}{Learning curves (MacroAcc vs. steps) in cross-task and LOFO evaluations.\relax }{figure.caption.24}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Final MacroAcc (\%) and Worst-dataset Acc (\%) on cross-task and LOFO tests.\relax }}{9}{table.caption.25}\protected@file@percent }
-\newlabel{tab:indist}{{3}{9}{Final MacroAcc (\%) and Worst-dataset Acc (\%) on cross-task and LOFO tests.\relax }{table.caption.25}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Final MacroAcc (\%) on cross-task and LOFO tests.\relax }}{9}{table.caption.25}\protected@file@percent }
+\newlabel{tab:indist}{{3}{9}{Final MacroAcc (\%) on cross-task and LOFO tests.\relax }{table.caption.25}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Out-of-Distribution Transfer (Placeholders)}{9}{subsection.5.5}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Zero-shot large-model transfer (e.g., ViT detection) and OOD regions (higher noise/imbalance).\relax }}{9}{figure.caption.26}\protected@file@percent }
 \newlabel{fig:ood}{{2}{9}{Zero-shot large-model transfer (e.g., ViT detection) and OOD regions (higher noise/imbalance).\relax }{figure.caption.26}{}}
