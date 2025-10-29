@@ -99,9 +99,9 @@ x_t \triangleq (\theta_t, B_t, \tau),
 \)
 where $\theta_t$ are the student parameters, $B_t$ the remaining budget, and $\tau$ episode-specific task parameters. At each decision point the teacher selects
 \[
-a_t=(w_t,\ell_t,u_t),
+a_t=(w_t,\eta_t,u_t),
 \]
-namely per-dataset mixture weights $w_t\in\Delta^{N-1}$, a learning rate $\ell_t$, and a usage fraction $u_t\in(0,1)$. The student then draws $m_t=\lfloor u_t B_t\rfloor$ examples with \emph{replacement} from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$ and performs $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) with step size $\ell_t$:
+namely per-dataset mixture weights $w_t\in\Delta^{N-1}$, a learning rate $\eta_t$, and a usage fraction $u_t\in(0,1)$. The student then draws $m_t=\lfloor u_t B_t\rfloor$ examples with \emph{replacement} from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$ and performs $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) with step size $\eta_t$:
 \begin{equation}
 \theta_{t+1} = U(\theta_t; a_t,\tau,\xi_t), \qquad B_{t+1}=B_t-m_t,
 \end{equation}
@@ -213,35 +213,35 @@ Although $S_t$ has constant length, the policy must output a valid mixture over 
 w_{t,i}=\frac{\exp(\alpha_{t,i})}{\sum_{j=1}^N \exp(\alpha_{t,j})},
 \label{eq:per-dataset-action}
 \end{equation}
-and separate heads for $\ell_t$ and $u_t$. The DeepSets encoder in~\eqref{eq:deepsets-global} and the shared per-element head in~\eqref{eq:per-dataset-action} make the policy permutation-equivariant and stable as $N$ varies.
+and separate heads for $\eta_t$ and $u_t$. The DeepSets encoder in~\eqref{eq:deepsets-global} and the shared per-element head in~\eqref{eq:per-dataset-action} make the policy permutation-equivariant and stable as $N$ varies.
 
 \paragraph{Final state space.}
-In our instantiation, the per-dataset descriptor is $z_{t,i}\in\R^{8}$, the model block is $g^{\text{model}}_t\in\R^{5}$, and the progress block is $g^{\text{progress}}_t\in\R^{8}$. Consequently
+In our instantiation, the per-dataset descriptor is $z_{t,i}\in\R^{8}$, the model block is $g^{\text{model}}_t\in\R^{6}$, and the progress block is $g^{\text{progress}}_t\in\R^{11}$. Consequently
 \[
 S_t \;=\; \big(\rho(\tfrac{1}{N}\sum_i \phi(z_{t,i})),\, g^{\text{model}}_t,\, g^{\text{progress}}_t\big)
 \;\in\;
-\R^{d_{\text{data}}}\times\R^{5}\times\R^{8},
+\R^{d_{\text{data}}}\times\R^{6}\times\R^{11},
 \]
-with $d_{\text{data}}$ fixed by the readout $\rho$ and independent of $N$. This grouped, compact observation is strictly Markov when information-preserving and, empirically, approximately Markov otherwise; it is expressly designed to capture the levers most predictive of one-step dynamics under SGD while remaining invariant to the number and ordering of datasets.
+with $d_{\text{data}}$ fixed by the readout $\rho$ and independent of $N$; in this instantiation $d_m=6$ and $d_p=11$. This grouped, compact observation is strictly Markov when information-preserving and, empirically, approximately Markov otherwise; it is expressly designed to capture the levers most predictive of one-step dynamics under SGD while remaining invariant to the number and ordering of datasets.
 
 
 \section{Method}
 \subsection{Policy and Training}
 We use an invariant encoder $f_\psi$ with a shared per-dataset block $\phi_\psi$ and \emph{mean}-pooled DeepSets over $\{z_{t,i}\}$ to produce a representation $h_t$, then concatenate the grouped globals $g^{\text{model}}_t$ and $g^{\text{progress}}_t$. Mean pooling (vs.\ sum) avoids scale drift as $N$ varies.
-Policy heads output (i) per-dataset mixture logits $\{\alpha_{t,i}\}$, normalized to $w_t$, (ii) learning rate $\ell_t$ (bounded via squashing to $[\ell_{\min},\ell_{\max}]$), and (iii) usage $u_t\in(0,1)$ (sigmoid).
+Policy heads output (i) per-dataset mixture logits $\{\alpha_{t,i}\}$, normalized to $w_t$, (ii) learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$), and (iii) usage $u_t\in(0,1)$ (sigmoid).
 A value head $V_\psi(S_t)$ shares the invariant encoder and globals. This architecture instantiates \MAESTRO{} as defined in Def.~\ref{def:maestro}.
 
 \paragraph{Action regularizers and barriers.}
 To prevent collapse and boundary hugging, we add entropy and barrier regularizers to the PPO loss:
 \(
 \mathcal{L}_{\text{ent}}= \beta_{\text{mix}}\, H(w_t) + \beta_u\, H(u_t),\quad
-\mathcal{L}_{\text{bar}}= \kappa\big[-\log(\ell_t-\ell_{\min})-\log(\ell_{\max}-\ell_t)\big] + \kappa'\big[-\log u_t - \log (1-u_t)\big],
+\mathcal{L}_{\text{bar}}= \kappa\big[-\log(\eta_t-\eta_{\min})-\log(\eta_{\max}-\eta_t)\big] + \kappa'\big[-\log u_t - \log (1-u_t)\big],
 \)
 with standard clipping of pre-squash outputs for numerical stability.
 
 \paragraph{Student update semantics (removing confounds).}
 We fix batch size $b$.
-Usage chooses a sample count $m_t=\lfloor u_t B_t\rfloor$, inducing $K_t=\lceil m_t/b\rceil$ optimizer steps with step size $\ell_t$.
+Usage chooses a sample count $m_t=\lfloor u_t B_t\rfloor$, inducing $K_t=\lceil m_t/b\rceil$ optimizer steps with step size $\eta_t$.
 Mini-batches are drawn \emph{with replacement} from the mixture with proportions $w_t$.
 This separates the effects of step size and data volume; any residual coupling is tempered by $\mathcal{L}_{\text{bar}}$ and the CMDP penalty.
 
@@ -256,8 +256,8 @@ This separates the effects of step size and data volume; any residual coupling i
     \For{$t=1$ to $H$}
       \State \Comment{build grouped state on fixed probes}
       \State For each dataset $i$, compute probe statistics and $z_{t,i}$; set $h_t=\rho\!\big(\tfrac{1}{N}\sum_i \phi(z_{t,i})\big)\,\Vert\,g^{\text{model}}_t\,\Vert\,g^{\text{progress}}_t$
-      \State Emit $\{\alpha_{t,i}\}$, $\ell_t$, $u_t$; set $w_t=\mathrm{softmax}(\{\alpha_{t,i}\})$
-      \State Apply $K_t$ SGD steps using batches drawn \emph{with replacement} from mixture $w_t$ with step size $\ell_t$ (\MAESTRO{})
+      \State Emit $\{\alpha_{t,i}\}$, $\eta_t$, $u_t$; set $w_t=\mathrm{softmax}(\{\alpha_{t,i}\})$
+      \State Apply $K_t$ SGD steps using batches drawn \emph{with replacement} from mixture $w_t$ with step size $\eta_t$ (\MAESTRO{})
       \State $m_t=\lfloor u_t B_t\rfloor$;\quad $B_{t+1}=B_t-m_t$
       \State (Optional, finite pools) re-mask any dataset with $n_i=0$
       \State Observe $(S_{t+1}, r_t)$
