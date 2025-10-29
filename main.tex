@@ -46,7 +46,7 @@
 \maketitle
 
 \begin{abstract}
-In practice, models intended for a small, high-stakes domain are trained alongside much larger auxiliary datasets. This “many-to-one” regime accelerates learning but can mask failure on the target domain: for example, a mixture in which roughly $85$–$90\%$ of training examples come from a dominant source and the remaining $10$–$15\%$ are spread across specialized datasets can yield strong average accuracy while performing poorly on the minority slices that matter. We revisit \emph{learning to teach} and design \MAESTRO{ (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization})}, a reinforcement-learning teacher that explicitly guards against this imbalance by adaptively controlling three levers of the curriculum: the per-dataset mixture, the learning rate, and the lesson size (budget usage). Our formulation makes the teacher–student interaction \emph{Markov} by grounding transitions in SGD dynamics and exposing a compact, task/architecture-agnostic observation with three groups: (A) \textbf{dataset-level DeepSets embeddings} computed from permutation-invariant probe statistics (loss/uncertainty summaries, gradient-norm moments, and diversity sketches), (B) a \textbf{model-complexity} vector, and (C) a \textbf{training-progress} vector. A set-based encoder with mean pooling and shared per-dataset policy heads ensures \emph{number-of-datasets invariance}, producing valid mixtures for any number of datasets and any permutation, while a constrained-MDP view manages total budget. We validate \emph{approximate Markovity} via one-step prediction $R^2$ with only small gains from short histories, demonstrate invariance under varying number and permutations, and show cross-task/architecture portability (e.g., classification, detection, sequence labeling, QA), including leave-one-family-out and zero/few-shot transfer from toy episodes to large models. Despite its compactness, \MAESTRO{} achieves strong sample efficiency and improves balanced metrics (macro-accuracy and worst-dataset performance) across heterogeneous mixtures.
+In practice, models intended for a small, high-stakes domain are trained alongside much larger auxiliary datasets. This “many-to-one” regime accelerates learning but can mask failure on the target domain: for example, a mixture in which roughly $85$–$90\%$ of training examples come from a dominant source and the remaining $10$–$15\%$ are spread across specialized datasets can yield strong average accuracy while performing poorly on the minority slices that matter. We revisit \emph{learning to teach} and design \MAESTRO{ (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization})}, a reinforcement-learning teacher that explicitly guards against this imbalance by adaptively controlling three levers of the curriculum: the per-dataset mixture, the learning rate, and the lesson size (budget usage). Our formulation makes the teacher–student interaction \emph{Markov} by grounding transitions in SGD dynamics and exposing a compact, task/architecture-agnostic observation with three groups: (A) \textbf{dataset-level DeepSets embeddings} computed from permutation-invariant probe statistics (loss/uncertainty summaries, gradient-norm moments, and diversity sketches), (B) a \textbf{model-complexity} vector, and (C) a \textbf{training-progress} vector. A set-based encoder with mean pooling and shared per-dataset policy heads ensures \emph{number-of-datasets invariance}, producing valid mixtures for any number of datasets and any permutation, while a constrained-MDP view manages total budget. We validate \emph{approximate Markovity} via one-step prediction $R^2$ with only small gains from short histories, demonstrate invariance under varying number and permutations, and show cross-task/architecture portability (e.g., classification, detection, sequence labeling, QA), including leave-one-family-out and zero/few-shot transfer from toy episodes to large models. Despite its compactness, \MAESTRO{} achieves strong sample efficiency and improves balanced metrics (macro metrics) across heterogeneous mixtures.
 
 
 \end{abstract}
@@ -54,13 +54,13 @@ In practice, models intended for a small, high-stakes domain are trained alongsi
 \section{Introduction}
 In production pipelines, a model intended for a narrow, high-stakes domain is often trained with help from many auxiliary datasets. This “many-to-one” regime is pragmatic—large sources accelerate learning—but brittle: when evaluation or deployment hinges on a small curated dataset, optimizing an aggregate objective can obscure failures on that minority slice. In extremis, if a single dataset contributes $99\%$ of all training examples, a seemingly strong mean accuracy can coexist with poor performance on the $1\%$ that matters. This phenomenon mirrors the \emph{repeated loss minimization} and \emph{group shift} observations in the fairness and robustness literature: naively minimizing average risk can systematically underserve minority groups \citep{hashimoto2018fairness,sagawa2020dro}.
 
-We study \emph{learning to teach}: a reinforcement-learning (RL) \emph{teacher} that observes a student’s competence and adaptively decides \emph{which datasets} to emphasize, \emph{how aggressively} to spend budget, and \emph{what learning rate} to use. The goal is to maximize balanced end-of-training metrics—e.g., \emph{macro-accuracy} across any number of datasets, so that small, specialized datasets are not eclipsed by large, easy ones. We refer to our teacher as \MAESTRO{} (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization}). 
+We study \emph{learning to teach}: a reinforcement-learning (RL) \emph{teacher} that observes a student’s competence and adaptively decides \emph{which datasets} to emphasize, \emph{how aggressively} to spend budget, and \emph{what learning rate} to use. The goal is to maximize balanced end-of-training metrics—e.g., \emph{macro-accuracy} across any number of datasets, so that small, specialized datasets are not eclipsed by large, easy ones. Here, “macro” denotes the equal-weight average of per-dataset accuracies, irrespective of dataset size. We refer to our teacher as \MAESTRO{} (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization}).
 
 A central challenge is engineering the teacher’s interface so that it is (1) \emph{Markov}, enabling stable RL control; (2) \emph{invariant in the number of datasets}, so one policy naturally scales to any number of datasets and any permutation; and (3) \emph{portable} across task families and architectures, so a single teacher trained on small, inexpensive episodes can be deployed in varied settings. Existing learning-to-teach approaches demonstrate the promise of dynamic data selection and learned losses \citep{fan2018l2t,wu2018l2tloss}, yet typically do not combine a formal Markov interface with a \emph{set-based} design for many datasets and a compact, task-agnostic observation that can transfer broadly. Meanwhile, results in group-robust optimization argue for objectives that explicitly guard minority performance \citep{hashimoto2018fairness,sagawa2020dro}; we bring that spirit to curriculum design by reallocating training mixture and budget over time.
 
 \textbf{Our approach.} We formalize the hidden state of training under SGD and construct a grouped, task/architecture/optimizer-agnostic observation with three components: \emph{(A) dataset-level embeddings} built via DeepSets from small, fixed probes (loss/uncertainty histograms, gradient-norm moments, diversity sketches, light meta-statistics), \emph{(B) model-complexity} summaries, and \emph{(C) training-progress} dynamics. A set-based encoder with mean pooling ensures permutation and cardinality invariance; shared per-dataset policy heads emit mixture logits $w_t$ for any number of datasets. Additional heads control learning rate and usage, allowing the teacher to modulate \emph{both} exposure and step size. We adopt a CMDP view over budget. We denote this unified design by \MAESTRO{}. 
 
-\textbf{Contributions.} (1) We introduce \MAESTRO{}, a Markov teacher--student formulation with a \emph{grouped, universal state} (dataset embeddings + model complexity + training progress) that is compact yet empirically \emph{approximately} Markov. (2) A \emph{set-invariant} policy/value parameterization whose per-dataset heads and mean-pooled encodings produce valid mixtures for any number of datasets and any permutation. (3) A meta-training/evaluation protocol demonstrating \emph{portability} across task families and architectures, including leave-one-family-out and zero-/few-shot transfer. (4) A CMDP treatment that jointly controls mixture, learning rate, and usage, improving balanced outcomes (macro and worst-dataset metrics) over uniform sampling, myopic/bandit schedulers, and heuristic curricula. Conceptually, \MAESTRO{} operationalizes the group-robust principle—do not ignore small groups—through an adaptive curriculum rather than a static objective.
+\textbf{Contributions.} (1) We introduce \MAESTRO{}, a Markov teacher--student formulation with a \emph{grouped, universal state} (dataset embeddings + model complexity + training progress) that is compact yet empirically \emph{approximately} Markov. (2) A \emph{set-invariant} policy/value parameterization whose per-dataset heads and mean-pooled encodings produce valid mixtures for any number of datasets and any permutation. (3) A meta-training/evaluation protocol demonstrating \emph{portability} across task families and architectures, including leave-one-family-out and zero-/few-shot transfer. (4) A CMDP treatment that jointly controls mixture, learning rate, and usage, improving balanced outcomes (macro metrics) over uniform sampling, myopic/bandit schedulers, and heuristic curricula. Conceptually, \MAESTRO{} operationalizes the group-robust principle—do not ignore small groups—through an adaptive curriculum rather than a static objective.
 
 \textbf{Why this matters.} Practitioners increasingly face mixtures where large auxiliary datasets threaten to dominate optimization while deployment risk concentrates on a small, specialized dataset. A teacher that is \emph{Markov}, \emph{set-invariant}, and \emph{task/architecture-invariant} can be trained once and reused, reallocating budget toward underperforming datasets as training unfolds. Our results suggest that a compact, grouped observation suffices to steer learning dynamics toward balanced performance, complementing distributionally robust objectives with a procedural lever: the curriculum itself.
 
@@ -302,12 +302,12 @@ We construct episodes that randomize dataset difficulty, size, and noise.
 The teacher never observes task IDs; it only receives the grouped state (dataset embeddings + model/training blocks).
 
 \paragraph{Leave-one-family-out (LOFO).}
-We train the teacher on two families and evaluate zero-shot on the held-out family (e.g., train on classification+NER, test on detection), reporting macro metrics appropriate to each family (accuracy/F1, F1 for NER, mAP/AR for detection), along with \emph{worst-dataset} performance and sample-efficiency AUC.
+We train the teacher on two families and evaluate zero-shot on the held-out family (e.g., train on classification+NER, test on detection), reporting macro metrics appropriate to each family (accuracy/F1, F1 for NER, mAP/AR for detection), and sample-efficiency AUC.
 
 \paragraph{Large-model transfer.}
 We stress-test transfer by deploying the teacher zero-shot to a large ViT-based detector trained over 10 detection datasets. 
 The teacher controls dataset mixture, learning rate, and usage; the state is the same grouped observation computed on a fixed probe slice.
-We report mAP@[.50:.95], AP$_\mathrm{S/M/L}$, and worst-dataset AP.
+We report mAP@[.50:.95] and AP$_\mathrm{S/M/L}$.
 
 \paragraph{Diagnostics.}
 We measure (i) \emph{approximate Markovity}: one-step $R^2$ of $S_{t+1}$ from $(S_t,a_t)$ and the $\Delta R^2$ from adding history; (ii) \emph{$N$-invariance}: training at $N\in\{3,5\}$ and evaluating at $N\in\{2,4,7,10\}$ under random permutations; and (iii) entropy/barrier usage to verify stable control.
@@ -341,13 +341,13 @@ We report MacroAcc and permutation robustness $\sigma_\pi(\MacroAcc)$, the stand
 \centering
 \caption{$N$-scaling and permutation robustness across tasks (placeholders).}
 \label{tab:ninvariance}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccc}
 \toprule
-Train $N$ & Test $N$ & MacroAcc $\uparrow$ & Worst Acc $\uparrow$ & Permutation $\sigma$ \\
+Train $N$ & Test $N$ & MacroAcc $\uparrow$ & Permutation $\sigma$ \\
 \midrule
-3 & 2 & 00.0 & 00.0 & 0.00 \\
-3 & 7 & 00.0 & 00.0 & 0.00 \\
-5 & 10 & 00.0 & 00.0 & 0.00 \\
+3 & 2 & 00.0 & 0.00 \\
+3 & 7 & 00.0 & 0.00 \\
+5 & 10 & 00.0 & 0.00 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -362,18 +362,18 @@ Train $N$ & Test $N$ & MacroAcc $\uparrow$ & Worst Acc $\uparrow$ & Permutation 
 
 \begin{table}[H]
 \centering
-\caption{Final MacroAcc (\%) and Worst-dataset Acc (\%) on cross-task and LOFO tests.}
+\caption{Final MacroAcc (\%) on cross-task and LOFO tests.}
 \label{tab:indist}
-\begin{tabular}{lcc}
+\begin{tabular}{lc}
 \toprule
-Method & MacroAcc $\uparrow$ & Worst-dataset $\uparrow$ \\
+Method & MacroAcc $\uparrow$ \\
 \midrule
-Static Uniform & 00.0 & 00.0 \\
-Easy$\to$Hard & 00.0 & 00.0 \\
-Myopic Greedy & 00.0 & 00.0 \\
-Bandit (LinUCB) & 00.0 & 00.0 \\
-PBT/BOHB & 00.0 & 00.0 \\
-\textbf{PPO Teacher (ours)} & \textbf{00.0} & \textbf{00.0} \\
+Static Uniform & 00.0 \\
+Easy$\to$Hard & 00.0 \\
+Myopic Greedy & 00.0 \\
+Bandit (LinUCB) & 00.0 \\
+PBT/BOHB & 00.0 \\
+\textbf{PPO Teacher (ours)} & \textbf{00.0} \\
 \bottomrule
 \end{tabular}
 \end{table}
