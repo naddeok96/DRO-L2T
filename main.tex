@@ -95,15 +95,24 @@ An RL environment with observable state $S_t$ and action $a_t$ is Markov if
 \label{eq:markov}
 \end{equation}
 
+\paragraph{Environment dynamics.}
+We write $g$ for the (possibly stochastic) transition mechanism that, together with the observation map, induces the law of $(S_{t+1},r_t)$ given $(S_t,a_t)$.
+
+\begin{definition}[Rich predictor class]\label{def:rich-class}
+A predictor class $\mathcal{F}$ is \emph{rich} if it can approximate the target mappings considered to arbitrary accuracy in $L^2$; e.g., universal-approximation neural nets on compact domains are sufficient for our purposes.
+\end{definition}
+
 \begin{definition}[Approximate Markovity]
 \label{def:approx-markov-tight}
-Let $\mathcal{F}$ be a rich predictor class. Define
+Let $\mathcal{F}$ be a rich predictor class (Def.~\ref{def:rich-class}). Define
 $\mathcal{E}_0 \triangleq \inf_{F\in\mathcal{F}} \E\| S_{t+1} - F(S_t,a_t)\|^2$
 and
 $\mathcal{E}_1 \triangleq \inf_{F\in\mathcal{F}} \E\| S_{t+1} - F(S_t,a_t,S_{t-1},a_{t-1})\|^2$.
-We say $g$ is $(\varepsilon,\delta)$-Markov if $\mathcal{E}_0 \le \varepsilon$ and
+We say the environment dynamics $g$ are $(\varepsilon,\delta)$-Markov if $\mathcal{E}_0 \le \varepsilon$ and
 $\mathcal{E}_0 - \mathcal{E}_1 \le \delta$ with $\delta \ll \varepsilon$.
-Empirically, we report $\Delta R^2$ from adding $(S_{t-1},a_{t-1})$.
+Empirically, we report the held-out improvement
+$\Delta R^2 \triangleq R^2\!\big(S_{t+1}\!\leftarrow\!(S_t,a_t,S_{t-1},a_{t-1})\big) - R^2\!\big(S_{t+1}\!\leftarrow\!(S_t,a_t)\big)$,
+averaging componentwise if $S_{t+1}$ is vector-valued.
 \end{definition}
 
 \begin{definition}[\MAESTRO: Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization]\label{def:maestro}
@@ -202,7 +211,7 @@ If sampling without replacement, include remaining counts in $x_t$.
 \end{proof}
 
 \begin{proposition}[Strict Markovity under information-preserving observation]\label{prop:inject}
-If $g$ is injective (i.e., $S_t=g(x_t)$ is an information-preserving encoding), then the observable process is Markov:
+If the observation map is injective (i.e., $S_t=g_{\mathrm{obs}}(x_t)$ preserves information), then the observable process is Markov:
 \(
 \Prb(S_{t+1},r_t \mid S_t,a_t)=\Prb(S_{t+1},r_t \mid S_t,a_t,S_{t-1},a_{t-1},\dots).
 \)
