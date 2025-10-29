@@ -293,7 +293,7 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 % Policy heads (learnable)
 \node[param] (mixhead) at (3.5,-12) {$h_{\text{mix}}$};
 \node[param] (lrhead) at (12,-12) {$h_{\eta}$};
-\node[param] (usagehead) at (18,-12) {$h_{u}$};
+\node[param] (usagehead) at (16,-12) {$h_{u}$};
 
 % Optional value head (learnable critic)
 \node[param, minimum width=3.5cm] (valuehead) at (23,-10) {$V_{\psi}(S_t)$};
@@ -307,7 +307,7 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 % Squashing/normalization layers (deterministic)
 \node[det] (softmax) at (3.5,-15.5) {softmax};
 \node[det] (bounded)  at (12,-15.5) {bounded\\squash};
-\node[det] (sigmoid)  at (18,-15.5) {sigmoid};
+\node[det] (sigmoid)  at (16,-15.5) {sigmoid};
 
 % Final outputs
 \node[action] (w1) at (0,-18) {$w_{t,1}$};
@@ -315,7 +315,7 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 \node (wdots) at (5,-18) {$\cdots$};
 \node[action] (wN) at (7,-18) {$w_{t,N}$};
 \node[action] (eta) at (12,-18) {$\eta_t$};
-\node[action] (usage) at (18,-18) {$u_t$};
+\node[action] (usage) at (16,-18) {$u_t$};
 
 % Arrows - Inputs to encoder
 \draw[->] (z1) -- (phi);
@@ -381,7 +381,7 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 \draw[->, dashed] (state) -- (valuehead);
 
 % Legend
-\node[legendbox, anchor=north east] (legend) at (21.5,1.4) {
+\node[legendbox, anchor=north east] (legend) at (25,-12.5) {
   \begin{tikzpicture}[every node/.style={font=\large}]
     \node[param, minimum width=0.8cm, minimum height=0.6cm] (l1) {};
     \node[anchor=west] at (1.2,0) {Learnable (trainable)};
@@ -396,7 +396,9 @@ Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and
 
 \end{tikzpicture}
 }
-\caption{\textbf{\MAESTRO{} policy network with learnable vs.\ fixed elements.} Double-bordered green blocks are \emph{learnable} (parameters trained by PPO): the per-dataset encoder $\phi$, the readout $\rho$, policy heads $h_{\text{mix}}, h_{\eta}, h_{u}$, and the value head $V_\psi$. Gray blocks are deterministic ops. Inputs $z_{t,i}, g^{\text{model}}_t, g^{\text{progress}}_t$ are observed; outputs $w_t,\eta_t,u_t$ are the action components. The mixture head is shared across datasets (dashed arrows show its dependence on per-dataset embeddings).}
+\caption{\textbf{Architecture and learnable components of the \MAESTRO{} policy network.} 
+Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared per-dataset encoder $\phi_\psi$ and mean-pooled via $\rho$ to form the data summary $g^{\text{data}}_t$. Combined with $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, this yields the state $S_t$. The shared mixture head $h_{\text{mix}}$ is applied to each dataset embedding $\phi(z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha_{t,i}\}_{i=1}^N$, which are normalized via softmax to obtain mixture weights $w_t\in\Delta^{N-1}$. Separate heads emit the learning rate $\eta_t$ (bounded via squashing to $[\eta_{\min},\eta_{\max}]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring scalability to any number of datasets. Double-bordered green blocks denote \emph{learnable} components (trained via PPO): $\phi$, $\rho$, $h_{\text{mix}}$, $h_{\eta}$, $h_{u}$, and $V_\psi$. Gray blocks indicate deterministic operations. Inputs $z_{t,i}$, $g^{\text{model}}_t$, and $g^{\text{progress}}_t$ are observed, while outputs $w_t$, $\eta_t$, and $u_t$ are the action components. The mixture head is shared across datasets, with dashed arrows showing its dependence on per-dataset embeddings.}
+
 \label{fig:policy-network}
 \end{figure}
 

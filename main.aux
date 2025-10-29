@@ -56,16 +56,16 @@
 \newlabel{eq:per-dataset-action}{{10}{6}{Action parametrization and invariance}{equation.3.10}{}}
 \@writefile{toc}{\contentsline {paragraph}{Final state space.}{6}{section*.11}\protected@file@percent }
 \newlabel{def:maestro}{{1}{7}{\MAESTRO {} teacher}{definition.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Architecture of the \textsc  {MAESTRO}\xspace  {} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared $\phi _\psi $ and mean-pooled via $\rho $ to form $g^{\text  {data}}_t$. Combined with $g^{\text  {model}}_t$ and $g^{\text  {progress}}_t$, this yields state $S_t$. The shared mixture head $h_{\text  {mix}}$ is applied to each dataset embedding $\phi (z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha _{t,i}\}_{i=1}^N$, which are collectively normalized via softmax to obtain valid mixture weights $w_t\in \Delta ^{N-1}$. Separate heads emit learning rate $\eta _t$ (bounded via squashing to $[\eta _{\min },\eta _{\max }]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring the policy scales to any number of datasets.\relax }}{7}{figure.caption.12}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Architecture and learnable components of the \textsc  {MAESTRO}\xspace  {} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared per-dataset encoder $\phi _\psi $ and mean-pooled via $\rho $ to form the data summary $g^{\text  {data}}_t$. Combined with $g^{\text  {model}}_t$ and $g^{\text  {progress}}_t$, this yields the state $S_t$. The shared mixture head $h_{\text  {mix}}$ is applied to each dataset embedding $\phi (z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha _{t,i}\}_{i=1}^N$, which are normalized via softmax to obtain mixture weights $w_t\in \Delta ^{N-1}$. Separate heads emit the learning rate $\eta _t$ (bounded via squashing to $[\eta _{\min },\eta _{\max }]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring scalability to any number of datasets. Double-bordered green blocks denote \emph  {learnable} components (trained via PPO): $\phi $, $\rho $, $h_{\text  {mix}}$, $h_{\eta }$, $h_{u}$, and $V_\psi $. Gray blocks indicate deterministic operations. Inputs $z_{t,i}$, $g^{\text  {model}}_t$, and $g^{\text  {progress}}_t$ are observed, while outputs $w_t$, $\eta _t$, and $u_t$ are the action components. The mixture head is shared across datasets, with dashed arrows showing its dependence on per-dataset embeddings.\relax }}{7}{figure.caption.12}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{fig:policy-network}{{1}{7}{\textbf {Architecture of the \MAESTRO {} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared $\phi _\psi $ and mean-pooled via $\rho $ to form $g^{\text {data}}_t$. Combined with $g^{\text {model}}_t$ and $g^{\text {progress}}_t$, this yields state $S_t$. The shared mixture head $h_{\text {mix}}$ is applied to each dataset embedding $\phi (z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha _{t,i}\}_{i=1}^N$, which are collectively normalized via softmax to obtain valid mixture weights $w_t\in \Delta ^{N-1}$. Separate heads emit learning rate $\eta _t$ (bounded via squashing to $[\eta _{\min },\eta _{\max }]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring the policy scales to any number of datasets.\relax }{figure.caption.12}{}}
+\newlabel{fig:policy-network}{{1}{7}{\textbf {Architecture and learnable components of the \MAESTRO {} policy network.} Per-dataset descriptors $\{z_{t,i}\}_{i=1}^N$ are encoded through a shared per-dataset encoder $\phi _\psi $ and mean-pooled via $\rho $ to form the data summary $g^{\text {data}}_t$. Combined with $g^{\text {model}}_t$ and $g^{\text {progress}}_t$, this yields the state $S_t$. The shared mixture head $h_{\text {mix}}$ is applied to each dataset embedding $\phi (z_{t,i})$ along with the global state (dashed arrows) to produce per-dataset logits $\{\alpha _{t,i}\}_{i=1}^N$, which are normalized via softmax to obtain mixture weights $w_t\in \Delta ^{N-1}$. Separate heads emit the learning rate $\eta _t$ (bounded via squashing to $[\eta _{\min },\eta _{\max }]$) and usage $u_t$ (sigmoid to $(0,1)$), ensuring scalability to any number of datasets. Double-bordered green blocks denote \emph {learnable} components (trained via PPO): $\phi $, $\rho $, $h_{\text {mix}}$, $h_{\eta }$, $h_{u}$, and $V_\psi $. Gray blocks indicate deterministic operations. Inputs $z_{t,i}$, $g^{\text {model}}_t$, and $g^{\text {progress}}_t$ are observed, while outputs $w_t$, $\eta _t$, and $u_t$ are the action components. The mixture head is shared across datasets, with dashed arrows showing its dependence on per-dataset embeddings.\relax }{figure.caption.12}{}}
 \newlabel{def:approx-markov-tight}{{2}{7}{Approximate Markovity of the grouped state}{definition.2}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Method}{8}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Policy and Training}{8}{subsection.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Action regularizers and barriers.}{8}{section*.13}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Student update semantics (removing confounds).}{8}{section*.14}\protected@file@percent }
-\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces PPO teacher on a Markov, set-valued curriculum MDP (updated)\relax }}{8}{algorithm.1}\protected@file@percent }
-\newlabel{alg:ppo}{{1}{8}{PPO teacher on a Markov, set-valued curriculum MDP (updated)\relax }{algorithm.1}{}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces PPO teacher on a Markov, set-valued curriculum MDP (updated)\relax }}{9}{algorithm.1}\protected@file@percent }
+\newlabel{alg:ppo}{{1}{9}{PPO teacher on a Markov, set-valued curriculum MDP (updated)\relax }{algorithm.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Experiments}{9}{section.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Cross-Task Meta-Training and Evaluation}{9}{subsection.5.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Task families.}{9}{section*.15}\protected@file@percent }
@@ -73,37 +73,37 @@
 \@writefile{toc}{\contentsline {paragraph}{Large-model transfer.}{9}{section*.17}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Diagnostics.}{9}{section*.18}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Baselines.}{9}{section*.19}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Validating Markovity}{9}{subsection.5.2}\protected@file@percent }
-\newlabel{sec:markov-exp}{{5.2}{9}{Validating Markovity}{subsection.5.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces One-step prediction on the grouped observation (placeholders). Higher is better.\relax }}{9}{table.caption.20}\protected@file@percent }
-\newlabel{tab:markov}{{1}{9}{One-step prediction on the grouped observation (placeholders). Higher is better.\relax }{table.caption.20}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Testing Number-of-Datasets Invariance}{9}{subsection.5.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Validating Markovity}{10}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:markov-exp}{{5.2}{10}{Validating Markovity}{subsection.5.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces One-step prediction on the grouped observation (placeholders). Higher is better.\relax }}{10}{table.caption.20}\protected@file@percent }
+\newlabel{tab:markov}{{1}{10}{One-step prediction on the grouped observation (placeholders). Higher is better.\relax }{table.caption.20}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Testing Number-of-Datasets Invariance}{10}{subsection.5.3}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces $N$-scaling and permutation robustness across tasks (placeholders).\relax }}{10}{table.caption.21}\protected@file@percent }
 \newlabel{tab:ninvariance}{{2}{10}{$N$-scaling and permutation robustness across tasks (placeholders).\relax }{table.caption.21}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Main Results (Placeholders)}{10}{subsection.5.4}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Learning curves (MacroAcc vs. steps) in cross-task and LOFO evaluations.\relax }}{10}{figure.caption.22}\protected@file@percent }
 \newlabel{fig:indist}{{2}{10}{Learning curves (MacroAcc vs. steps) in cross-task and LOFO evaluations.\relax }{figure.caption.22}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Final MacroAcc (\%) on cross-task and LOFO tests.\relax }}{10}{table.caption.23}\protected@file@percent }
-\newlabel{tab:indist}{{3}{10}{Final MacroAcc (\%) on cross-task and LOFO tests.\relax }{table.caption.23}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Final MacroAcc (\%) on cross-task and LOFO tests.\relax }}{11}{table.caption.23}\protected@file@percent }
+\newlabel{tab:indist}{{3}{11}{Final MacroAcc (\%) on cross-task and LOFO tests.\relax }{table.caption.23}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.5}Out-of-Distribution Transfer (Placeholders)}{11}{subsection.5.5}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Zero-shot large-model transfer (e.g., ViT detection) and OOD regions (higher noise/imbalance).\relax }}{11}{figure.caption.24}\protected@file@percent }
 \newlabel{fig:ood}{{3}{11}{Zero-shot large-model transfer (e.g., ViT detection) and OOD regions (higher noise/imbalance).\relax }{figure.caption.24}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Zero-shot and few-shot MacroAcc on OOD grid and held-out task families.\relax }}{11}{table.caption.25}\protected@file@percent }
 \newlabel{tab:ood}{{4}{11}{Zero-shot and few-shot MacroAcc on OOD grid and held-out task families.\relax }{table.caption.25}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.6}Ablations (Placeholders)}{11}{subsection.5.6}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{11}{section.6}\protected@file@percent }
 \bibstyle{plainnat}
 \bibcite{bengio2009curriculum}{{1}{2009}{{Bengio et~al.}}{{Bengio, Louradour, Collobert, and Weston}}}
 \bibcite{kumar2010selfpaced}{{2}{2010}{{Kumar et~al.}}{{Kumar, Packer, and Koller}}}
 \bibcite{schaul2016prioritized}{{3}{2016}{{Schaul et~al.}}{{Schaul, Quan, Antonoglou, and Silver}}}
 \bibcite{jaderberg2017pbt}{{4}{2017}{{Jaderberg et~al.}}{{Jaderberg, et~al.}}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Discussion}{12}{section.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Implications.}{12}{section*.26}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Limitations.}{12}{section*.27}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{12}{section.7}\protected@file@percent }
 \bibcite{snoek2012practical}{{5}{2012}{{Snoek et~al.}}{{Snoek, Larochelle, and Adams}}}
 \bibcite{falkner2018bohb}{{6}{2018}{{Falkner et~al.}}{{Falkner, Klein, and Hutter}}}
 \bibcite{finn2017maml}{{7}{2017}{{Finn et~al.}}{{Finn, Abbeel, and Levine}}}
 \bibcite{duan2016rl2}{{8}{2016}{{Duan et~al.}}{{Duan, et~al.}}}
-\@writefile{toc}{\contentsline {paragraph}{Implications.}{12}{section*.26}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Limitations.}{12}{section*.27}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{12}{section.7}\protected@file@percent }
 \bibcite{zaheer2017deepsets}{{9}{2017}{{Zaheer et~al.}}{{Zaheer, Kottur, Ravanbakhsh, Poczos, Salakhutdinov, and Smola}}}
 \bibcite{lee2019settransformer}{{10}{2019}{{Lee et~al.}}{{Lee, Lee, Kim, Kosiorek, Choi, and Teh}}}
 \bibcite{fan2018l2t}{{11}{2018}{{Fan et~al.}}{{}}}
