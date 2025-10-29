@@ -85,180 +85,145 @@ DeepSets \citep{zaheer2017deepsets} and Set Transformer \citep{lee2019settransfo
 Compared to \citet{fan2018l2t,wu2018l2tloss}, we (i) formalize a Markov teacher--student MDP and empirically diagnose \emph{approximate Markovity} of a compact \emph{grouped} observation; (ii) enforce \emph{number-of-datasets invariance} with set encoders and shared per-dataset heads; and (iii) target \emph{task/architecture invariance} via task-agnostic statistics (probabilities, losses, gradient magnitudes, diversity sketches) plus model/progress blocks. Relative to fairness and GroupDRO \citep{hashimoto2018fairness,sagawa2020dro}, we provide a complementary mechanism—\emph{adaptive curricula}—that can protect minority datasets without modifying the base loss.
 
 \section{Problem Formulation}
-We consider $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ drawn from an episode-specific task $\tau\sim\mathcal{T}$. A student model $f_\theta$ is trained under a teacher policy $\pi_\phi$ over horizon $H$ with initial budget $B_0$. Our objective emphasizes \emph{balanced} end performance (macro metrics), reflecting the practical risk that small, high-stakes datasets be overshadowed by large auxiliaries.
+We study a teacher--student interaction in which a policy $\pi_\phi$ controls the training of a student $f_\theta$ on $N$ datasets $\{\mathcal{D}_i\}_{i=1}^N$ over a horizon $H$ with an initial example budget $B_0$. The goal is to maximize a balanced end metric---macro-accuracy across datasets---so that small, high-stakes datasets are not eclipsed by large auxiliaries. Formally, with per-dataset validation accuracies $\mathrm{Acc}_{i,t}$, we write $\MacroAcc_t=\frac{1}{N}\sum_{i=1}^N \mathrm{Acc}_{i,t}$ and optimize either a terminal reward $r_t=\1\{t=H\}\MacroAcc_H$ or the incremental difference $r_t=\MacroAcc_t-\MacroAcc_{t-1}$ under a budget constraint.
 
-\subsection{Markov Teacher--Student MDP}\label{sec:mdp}
-\paragraph{Definition (Markov property).}
-An RL environment with observable state $S_t$ and action $a_t$ is Markov if
+\subsection{A Markov Teacher--Student MDP}\label{sec:mdp}
+We cast curriculum control as an MDP with observable state $S_t$, action $a_t$, and reward $r_t$. The process is Markov if
 \begin{equation}
-\Prb(S_{t+1},r_t \mid S_t,a_t) \;=\; \Prb(S_{t+1},r_t \mid S_t,a_t,S_{t-1},a_{t-1},\dots).
+\Prb(S_{t+1}, r_t \mid S_t, a_t) \;=\; \Prb(S_{t+1}, r_t \mid S_t, a_t, S_{t-1}, a_{t-1}, \dots).
 \label{eq:markov}
 \end{equation}
-
-\paragraph{Environment dynamics.}
-We write $g$ for the (possibly stochastic) transition mechanism that, together with the observation map, induces the law of $(S_{t+1},r_t)$ given $(S_t,a_t)$.
-
-\begin{definition}[Rich predictor class]\label{def:rich-class}
-A predictor class $\mathcal{F}$ is \emph{rich} if it can approximate the target mappings considered to arbitrary accuracy in $L^2$; e.g., universal-approximation neural nets on compact domains are sufficient for our purposes.
-\end{definition}
-
-\begin{definition}[Approximate Markovity]
-\label{def:approx-markov-tight}
-Let $\mathcal{F}$ be a rich predictor class (Def.~\ref{def:rich-class}). Define
-$\mathcal{E}_0 \triangleq \inf_{F\in\mathcal{F}} \E\| S_{t+1} - F(S_t,a_t)\|^2$
-and
-$\mathcal{E}_1 \triangleq \inf_{F\in\mathcal{F}} \E\| S_{t+1} - F(S_t,a_t,S_{t-1},a_{t-1})\|^2$.
-We say the environment dynamics $g$ are $(\varepsilon,\delta)$-Markov if $\mathcal{E}_0 \le \varepsilon$ and
-$\mathcal{E}_0 - \mathcal{E}_1 \le \delta$ with $\delta \ll \varepsilon$.
-Empirically, we report the held-out improvement
-$\Delta R^2 \triangleq R^2\!\big(S_{t+1}\!\leftarrow\!(S_t,a_t,S_{t-1},a_{t-1})\big) - R^2\!\big(S_{t+1}\!\leftarrow\!(S_t,a_t)\big)$,
-averaging componentwise if $S_{t+1}$ is vector-valued.
-\end{definition}
-
-\begin{definition}[\MAESTRO: Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization]\label{def:maestro}
-\MAESTRO{} is a reinforcement-learning teacher that controls curriculum via actions
-$a_t=(w_t,\ell_t,u_t)$ comprising per-dataset mixture weights $w_t$, learning rate $\ell_t$, and budget usage $u_t$.
-It operates on a compact, task/architecture/optimizer-agnostic \emph{grouped} observation
-$S_t=\big(\{z_{t,i}\}_{i=1}^N,\,g^{\mathrm{model}}_t,\,g^{\mathrm{progress}}_t\big)$,
-where $\{z_{t,i}\}$ are permutation-invariant dataset embeddings computed from fixed probe statistics, and $g^{\mathrm{model}}_t$, $g^{\mathrm{progress}}_t$ summarize capacity and training dynamics.
-The policy/value encoders are set-invariant (DeepSets with mean pooling) and share per-dataset heads so that mixture decisions remain valid for any number of datasets and any permutation.
-The objective emphasizes \emph{equitable scheduling} toward task-robust performance, optimizing balanced metrics such as macro-accuracy or worst-dataset accuracy under a constrained-MDP budget.
-\end{definition}
-
-\paragraph{Hidden state and SGD dynamics.}
-Let the \emph{hidden} state be
+The \emph{hidden} state of training is
 \(
-x_t \triangleq (\theta_t,\,B_t,\,\tau),
+x_t \triangleq (\theta_t, B_t, \tau),
 \)
-where $\theta_t$ are student parameters, $B_t$ the remaining budget, and $\tau$ task parameters (e.g., margins, noise, imbalances).
-Given an action $a_t=(w_t,\ell_t,u_t)$---mixture over datasets, learning rate, and usage fraction---the student samples with \emph{replacement} $m_t=\lfloor u_t B_t\rfloor$ examples from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$ and performs $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) with step size $\ell_t$:
+where $\theta_t$ are the student parameters, $B_t$ the remaining budget, and $\tau$ episode-specific task parameters. At each decision point the teacher selects
+\[
+a_t=(w_t,\ell_t,u_t),
+\]
+namely per-dataset mixture weights $w_t\in\Delta^{N-1}$, a learning rate $\ell_t$, and a usage fraction $u_t\in(0,1)$. The student then draws $m_t=\lfloor u_t B_t\rfloor$ examples with \emph{replacement} from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$ and performs $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) with step size $\ell_t$:
 \begin{equation}
-\theta_{t+1} \;=\; U(\theta_t; a_t, \tau, \xi_t),\qquad B_{t+1}=B_t-m_t,
+\theta_{t+1} = U(\theta_t; a_t,\tau,\xi_t), \qquad B_{t+1}=B_t-m_t,
 \end{equation}
-where $\xi_t$ denotes minibatch randomness.
-Sampling at $t$ thus depends only on $(x_t,a_t)$.
-\textit{Remark:} If drawing \emph{without} replacement from finite pools, augment $x_t$ with per-dataset remaining counts so the process remains Markov; we otherwise assume with-replacement sampling in experiments.
-\begin{assumption}[With-replacement sampling]\label{assump:with-repl}
-Unless stated otherwise, mini-batches at time $t$ are sampled \emph{with replacement} from the mixture $\sum_i w_{t,i}\mathcal{D}_i^\tau$. This makes the data-generation mechanism conditionally independent of history given $(x_t,a_t)$.
-\end{assumption}
-
-\paragraph{Observable state (grouped, task/model/optimizer-agnostic).}
-We decompose the observable state into three blocks and concatenate them for control:
-\[
-S_t \;=\; \Big(\;\underbrace{\{z_{t,i}\}_{i=1}^N}_{\text{dataset-level set}}\;,\;
-\underbrace{g^{\text{model}}_t}_{\text{model complexity}}\;,\;
-\underbrace{g^{\text{progress}}_t}_{\text{training progress}}\;\Big).
-\]
-\textbf{(A) Dataset-level DeepSets embeddings.} For each dataset $i$, compute a permutation-invariant embedding
-\[
-z_{t,i} \;=\; \mathrm{DeepSets}\!\Big(\{\text{probe stats from } \mathcal{D}_i\}\Big)\in\R^{d_z},
-\]
-where the input set contains only task-agnostic statistics computed on a tiny, fixed probe slice each step:
-\begin{itemize}[leftmargin=1.25em]
-  \item \emph{Predictive performance \& uncertainty:} macro-Acc/F1 (when labels available), mean NLL (length-normalized for sequences), confidence percentiles $(p_{10},p_{50},p_{90})$, ECE-5.
-  \item \emph{Loss/difficulty:} loss histogram or quantiles (8 bins).
-  \item \emph{Gradient-based difficulty:} mean/std of per-example gradient norms w.r.t. logits (log-scale).
-  \item \emph{Diversity sketch:} embedding variance or SimHash/Sketch counts from a small reservoir.
-  \item \emph{Light meta:} $\log$ dataset size and label entropy.
-\end{itemize}
-All quantities are standardized using robust EMAs (median/IQR) and are architecture- and label-permutation agnostic, following the spirit of \citet{fan2018l2t} (student feedback on samples) while remaining model-agnostic.
-
-\begin{definition}[Grouped state: minimal-viable instantiation]\label{def:minimal}
-At each step $t$, the observable grouped state is
-$
-S_t=\big(\{z_{t,i}\}_{i=1}^N,\,g^{\mathrm{model}}_t,\,g^{\mathrm{progress}}_t\big)
-$,
-where, for each dataset $i$:
-\begin{align*}
-z_{t,i} &:= \mathrm{DeepSets}\!\Big(\{\text{loss histogram (8 bins)},\ \text{confidence percentiles }(p_{10},p_{50},p_{90}),\\
-&\qquad\ \ \text{ECE-5},\ \text{mean NLL (length-normalized)},\ \text{grad-norm mean/std (log)},\ \text{diversity sketch},\ \log|\mathcal{D}_i|,\ \text{label entropy}\}\Big)\in\R^{d_z},\\
-g^{\mathrm{model}}_t &:= \big[\log|\theta|,\ \log\text{FLOPs/forward},\ \text{overfit gap}=\text{loss}_{\text{train}}-\text{loss}_{\text{val}},\ \text{LR},\ \text{momentum or }(\beta_1,\beta_2),\ \text{weight decay}\big],\\
-g^{\mathrm{progress}}_t &:= \big[t/H,\ B_t/B_0,\ \mathrm{EMA}(\text{train loss}),\ \mathrm{EMA}(\text{val loss}),\ \Delta\text{loss/step},\ \text{gen gap},\ \text{grad-norm mean/std},\\
-&\qquad\ \ \cos\angle(\nabla_t,\nabla_{t-1}),\ \text{LR}/\text{LR}_0\big].
-\end{align*}
-All scalars are robustly normalized (median/IQR clipping). When labels on the probe are unavailable, macro-Acc/F1 terms are omitted and proper scores (NLL, calibration) are used.
-\end{definition}
-
-\textbf{(B) Model-complexity block.} A small vector
-\[
-g^{\text{model}}_t=\big[\log|\theta|,\;\log\text{FLOPs/forward},\;\text{overfit gap}=\text{loss}_{\text{train}}-\text{loss}_{\text{val}},\;\text{LR},\;\text{momentum or }(\beta_1,\beta_2),\;\text{weight decay}\big].
-\]
-This captures capacity and optimizer settings without accessing architecture internals.
-
-\textbf{(C) Training-progress block.} A small vector
-\[
-g^{\text{progress}}_t=\big[t/H,\;B_t/B_0,\;\text{EMA(train loss)},\;\text{EMA(val loss)},\;\Delta\text{loss/step},\;\text{gen gap},\;\text{grad-norm mean/std},\;\cos\angle(\nabla_t,\nabla_{t-1}),\;\text{LR}/\text{LR}_0\big].
-\]
-These dynamics features approximate the transition-relevant information needed for Markov control.
-
-\paragraph{Confidence calibration (ECE-5).}
-We compute a 5-bin expected calibration error on the maximum predicted class probability $p_{\max}$.
-Let $\mathcal{B}_b$ be instances with $p_{\max}\in((b-1)/5,b/5]$. Then
-$\mathrm{ECE}_5=\sum_{b=1}^5 \frac{|\mathcal{B}_b|}{n}\,\big|\mathrm{acc}(\mathcal{B}_b)-\mathrm{conf}(\mathcal{B}_b)\big|$,
-where $\mathrm{conf}(\mathcal{B}_b)$ is the average $p_{\max}$ and $\mathrm{acc}(\mathcal{B}_b)$ the empirical accuracy.
-Here $n$ is the number of evaluated instances (tokens for sequences; matched boxes for detection). For regression-style probes, ECE-5 is replaced by a proper calibration score (e.g., empirical coverage error under a Gaussian head).
-
-\begin{proposition}[Hidden-state Markovity]
-Under SGD with batches drawn according to $w_t$ \emph{with replacement} and fixed update rule $U$, the process on hidden states satisfies
-\(
-\Prb(x_{t+1},r_t \mid x_t,a_t)=\Prb(x_{t+1},r_t \mid x_t,a_t,x_{t-1},a_{t-1},\dots).
-\)
-\end{proposition}
-\begin{proof}[Proof sketch]
-Sampling at time $t$ depends only on $(x_t,a_t)$; the SGD update is a measurable function of $(\theta_t,a_t,\tau,\xi_t)$.
-Therefore $(x_{t+1},r_t)$ depends on history only through $(x_t,a_t)$.
-If sampling without replacement, include remaining counts in $x_t$.
-\end{proof}
-
-\begin{proposition}[Strict Markovity under information-preserving observation]\label{prop:inject}
-If the observation map is injective (i.e., $S_t=g_{\mathrm{obs}}(x_t)$ preserves information), then the observable process is Markov:
-\(
-\Prb(S_{t+1},r_t \mid S_t,a_t)=\Prb(S_{t+1},r_t \mid S_t,a_t,S_{t-1},a_{t-1},\dots).
-\)
-\end{proposition}
-
-\paragraph{Reward (macro-accuracy across datasets) and episode termination.}
-Let $\mathrm{Acc}_{i,t}$ be validation accuracy on dataset $i$; macro-accuracy $\MacroAcc_t=\frac{1}{N}\sum_{i=1}^N \mathrm{Acc}_{i,t}$.
-We use either terminal $r_t=\1\{t=H\}\MacroAcc_H$ or incremental $r_t=\MacroAcc_t-\MacroAcc_{t-1}$. In all cases, \MAESTRO{} targets equitable outcomes by directly optimizing balanced metrics.
-To avoid reward shaping issues from stochastic early termination, we either forbid early termination (fixed $H$) or use terminal-only rewards and report $\MacroAcc_H$.
+where $\xi_t$ denotes minibatch randomness. With-replacement sampling ensures that $(x_{t+1},r_t)$ depends on history only through $(x_t,a_t)$; the hidden process is therefore Markov. If sampling without replacement is desired, one augments $x_t$ with the remaining per-dataset counts to retain Markovity.
 
 \paragraph{Budget as a CMDP.}
-Budget consumption $c_t=m_t$ induces a constrained MDP
-\(
-\max_\pi \ \E[\sum_{t=1}^H r_t]\ \text{s.t.}\ \E[\sum_{t=1}^H c_t]\le B_0.
-\)
-We optimize the Lagrangian
-\(
-\mathcal{L}=\E\!\left[\sum_{t=1}^H (r_t-\lambda\,c_t)\right],
-\)
-with a per-episode dual update
-\(
-\lambda \leftarrow \big[\lambda + \eta_\lambda\big(\sum_{t=1}^H c_t - B_0\big)\big]_+.
-\)
-
-\subsection{Number-of-Datasets Invariance}\label{sec:invariance}
-\paragraph{State as a set.}
-Let the per-dataset embeddings at time $t$ be $\{z_{t,i}\}_{i=1}^N$.
-We require the encoder to be \emph{permutation-invariant} and to admit variable cardinality $N$ without architectural changes or scale drift; \MAESTRO{} satisfies this via a DeepSets encoder with mean pooling.
-By the DeepSets theorem \citep{zaheer2017deepsets}, any continuous permutation-invariant function $f$ on sets can be written as
+The consumable cost $c_t=m_t$ induces a constrained MDP:
 \begin{equation}
-f(\{z_{t,i}\})=\rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi(z_{t,i})\right),
-\label{eq:deepsets}
+\label{eq:cmdp}
+\begin{aligned}
+\max_{\pi}\quad & \E\!\left[\sum_{t=1}^{H} r_t\right] \\
+\text{s.t.}\quad & \E\!\left[\sum_{t=1}^{H} c_t\right] \le B_0 \, .
+\end{aligned}
 \end{equation}
-for suitable $\phi$ and $\rho$ (universal approximators in practice).
-We implement the policy/value encoders as shared per-dataset blocks $\phi$ followed by \emph{mean} pooling and a readout $\rho$, then concatenate $g^{\text{model}}_t$ and $g^{\text{progress}}_t$, making them invariant to dataset order and stable in $N$.
+We optimize this via the standard Lagrangian
+\begin{equation}
+\label{eq:lagrangian}
+\mathcal{L}(\lambda) \;=\; \E\!\left[\sum_{t=1}^{H} \big(r_t-\lambda\,c_t\big)\right],
+\end{equation}
+with per-episode dual updates $\lambda \leftarrow \big[\lambda + \eta_\lambda\big(\sum_{t=1}^{H} c_t - B_0\big)\big]_+$.
 
-\paragraph{Action as per-dataset logits.}
-For mixture control, the policy emits a scalar logit $\alpha_{t,i}$ for each dataset via a \emph{shared} head applied to every $z_{t,i}$:
+\subsection{A Compact, Grouped Observation}\label{sec:state}
+To control stochastic gradient dynamics effectively, the teacher must observe just enough about (i) what the \emph{data} currently elicits from the student, (ii) how the \emph{update rule} is configured, and (iii) where the run sits in its \emph{training trajectory}. We therefore expose a grouped, task/architecture-agnostic state
+\begin{equation}
+\label{eq:grouped-state}
+S_t \;=\; \big( g^{\text{data}}_t,\; g^{\text{model}}_t,\; g^{\text{progress}}_t \big)
+\;\in\; \R^{d_{\text{data}}}\times\R^{d_m}\times\R^{d_p}.
+\end{equation}
+Here $d_{\text{data}}$ is an architectural choice determined by the DeepSets readout, while $d_m$ and $d_p$ are fixed by our engineered feature sets; the precise probes, invariance mechanism, and action parameterization are detailed in the sections that follow.
+
+\paragraph{Dataset block (set-valued summary).}
+For each dataset $i$, a fixed probe produces a compact, task-agnostic descriptor $z_{t,i}\in\R^{8}$ that tracks (i) \emph{difficulty and dispersion} of the loss through a level-and-spread pair, (ii) the model’s \emph{predictive uncertainty and calibration} on the probe, (iii) the \emph{scale and agreement} of gradients between this dataset and the recent global direction, (iv) \emph{diversity} of example representations in an embedding space, and (v) dataset \emph{size}. Concretely, we instantiate these signals with the mean and interquartile range of NLL, the mean predictive entropy together with a five-bin expected calibration error (ECE-5),
 \(
-\alpha_{t,i} = h_{\text{mix}}(\phi(z_{t,i})),\quad
-w_{t,i}=\frac{\exp(\alpha_{t,i})\,\1\{n_i>0\}}{\sum_{j=1}^N \exp(\alpha_{t,j})\,\1\{n_j>0\}},
+\mathrm{ECE}_5=\sum_{b=1}^5 \tfrac{|\mathcal{B}_b|}{n}\,|\mathrm{acc}(\mathcal{B}_b)-\mathrm{conf}(\mathcal{B}_b)|,
 \)
-where $n_i$ is the available size for dataset $i$ if sampling without replacement. Under with-replacement sampling,
-we drop the mask and set $w_t=\mathrm{softmax}(\{\alpha_{t,i}\})$. Shared heads and normalization over observed elements yield permutation equivariance and well-defined actions for any number of datasets.
+the log-EMA gradient norm and its cosine similarity to a running global gradient, a log effective rank $ \log r_{\mathrm{eff}}(\Sigma_i)$ of the probe embedding covariance $\Sigma_i$, and $\log|\mathcal{D}_i|$. These quantities are label-lean, architecture-agnostic, and robustly normalized (median/IQR EMAs), and together they reveal when a dataset is hard, miscalibrated, conflicting, or redundant—precisely the factors a curriculum should adapt to. To obtain a permutation- and cardinality-invariant global summary we apply a DeepSets encoder with mean pooling:
+\begin{equation}
+g^{\text{data}}_t \;=\; \rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi(z_{t,i})\right),
+\label{eq:deepsets-global}
+\end{equation}
+where $\phi$ and $\rho$ are shared neural networks. The per-dataset descriptors themselves are not part of the fixed-length state fed to the value function; they are consumed inside the policy to emit per-dataset actions while preserving invariance. Collecting these descriptors yields the dataset-level summary vector used throughout the policy and value networks:
 
-\paragraph{Implication.}
-The same learned policy applies to unseen numbers of datasets or new orderings without retraining; only the set $S_t$ changes in size or order, which the DeepSets encoder and per-element policy heads support natively.
+\begin{equation}
+\label{eq:gdata-full}
+\begin{aligned}
+g^{\text{data}}_t
+&= \rho\!\left(\frac{1}{N}\sum_{i=1}^N \phi\!\big(z_{t,i}\big)\right),\\[0.25em]
+z_{t,i}
+&= \Big[\, \overline{\mathrm{NLL}}_{t,i},\; \mathrm{IQR}(\mathrm{NLL})_{t,i},\; \overline{H}_{t,i},\; \mathrm{ECE}_{5,t,i},\\[-0.25em]
+&\qquad \log\|g_{t,i}\|_2,\; \cos\!\big(g_{t,i},\bar g_t\big),\; \log r_{\mathrm{eff}}(\Sigma_{t,i}),\; \log|\mathcal D_i| \,\Big]^{\!\top}\!\in\mathbb{R}^{8}.
+\end{aligned}
+\end{equation}
+
+\paragraph{Model-complexity block.}
+We summarize the model with six scalars $g^{\text{model}}_t\in\mathbb{R}^{6}$ chosen to be optimizer-independent, architecture-agnostic, and inexpensive to compute while still capturing capacity and geometry that influence learning dynamics. Specifically, $\log\lvert\theta_t\rvert$ (total parameter count) serves as a robust proxy for representational capacity across architectures; $\log\mathrm{FLOPs}_{\text{fwd+bwd}}$ per sample reflects the computational scale of one SGD step and correlates with effective curvature/noise regimes; $D_t$ (the longest parameterized path length) approximates effective depth, which affects gradient propagation and the stability of updates; $\operatorname{med}_\ell \log n_\ell$ (a width proxy with $n_\ell=\#W_\ell$, i.e., the number of scalar weights in layer~$\ell$) captures typical layer scale without drifting with the number of layers; sparsity $s_t=\frac{1}{\lvert\theta_t\rvert}\sum \mathbf{1}\{\lvert w\rvert<\tau_t\}$ (with a robust threshold $\tau_t$ set from the weight-magnitude $\mathrm{IQR})$ reflects implicit regularization/compression; and skip density $\rho_{\text{skip}}$ (residual/skip edges per parameterized layer) quantifies shortcut connectivity that improves gradient flow and reduces effective depth. We use logarithms and medians to stabilize these descriptors under heavy-tailed weight distributions and to ensure comparability across CNNs, Transformers, and MLPs. In parallel, we capture the model’s evolving characteristics through a lightweight architectural summary:
+
+\begin{equation}
+\label{eq:gmodel-full}
+\begin{aligned}
+g^{\text{model}}_t
+&= \Big[\,
+\log|\theta_t|,\;
+\log \mathrm{FLOPs}_{\text{fwd+bwd}},\;
+D_t,\;
+\operatorname{med}_\ell \log n_\ell,\;
+s_t,\;
+\rho_{\text{skip},t}
+\Big]^{\!\top}\!\in\mathbb{R}^{6}
+\end{aligned}
+\end{equation}
+
+
+\paragraph{Training-progress block.}
+Finally, the progress block summarizes both the state of optimization and where the run sits in the overall training trajectory. It contains eleven scalars
+\(
+g^{\text{progress}}_t\in\R^{11}
+\)
+capturing not only normalized time and budget---$t/H$ and $B_t/B_0$---but also the instantaneous optimizer state that directly affects learning dynamics: the current learning rate, momentum-like coefficient ($\mu$ for SGD or $\beta_1$ for Adam), and the log weight decay. The remaining features describe empirical progress: the validation loss level and generalization gap (train minus validation EMA), the short-horizon slope of the validation loss to detect regime shifts, a scale-free update-size proxy $\mathrm{UPR}_t=\|\Delta\theta_t\|_2/\|\theta_t\|_2$, the cosine similarity between successive gradients, and a log-EMA of the global gradient norm. Together these quantities expose the current stage of training, the stability of updates, and how optimization hyperparameters interact with observed progress—precisely the information a teacher needs to schedule exposure and adjust step size adaptively. Finally, to reflect the optimizer’s trajectory and the learner’s temporal position, we define a set of progress-oriented features:
+
+\begin{equation}
+\label{eq:gprogress-full}
+\begin{aligned}
+g^{\text{progress}}_t
+&= \Big[\,
+t/H,\;
+B_t/B_0,\;
+\eta_t,\;
+\mu_t,\;
+\log\lambda_t,\;
+\mathcal L^{\mathrm{val}}_t,\\[-0.25em]
+&\qquad
+\big(\mathcal L^{\mathrm{train}}_t-\mathcal L^{\mathrm{val}}_t\big),\;
+\mathrm{slope}^{\mathrm{val}}_t,\;
+\mathrm{UPR}_t,\;
+\cos\!\big(g_t,g_{t-1}\big),\;
+\log \widetilde{G}_t
+\Big]^{\!\top}\!\in\mathbb{R}^{11},\\[0.25em]
+\widetilde{G}_t 
+&= \mathrm{EMA}_\alpha\!\big(\,\|g_t\|_2\,\big).
+\end{aligned}
+\end{equation}
+
+
+\paragraph{Action parametrization and invariance.}
+Although $S_t$ has constant length, the policy must output a valid mixture over an arbitrary number of datasets. We realize this by applying a shared head to each encoded element, producing per-dataset logits
+\begin{equation}
+\alpha_{t,i}=h_{\text{mix}}\!\big(\phi(z_{t,i}),\, g^{\text{data}}_t,\, g^{\text{model}}_t,\, g^{\text{progress}}_t\big),
+\qquad
+w_{t,i}=\frac{\exp(\alpha_{t,i})}{\sum_{j=1}^N \exp(\alpha_{t,j})},
+\label{eq:per-dataset-action}
+\end{equation}
+and separate heads for $\ell_t$ and $u_t$. The DeepSets encoder in~\eqref{eq:deepsets-global} and the shared per-element head in~\eqref{eq:per-dataset-action} make the policy permutation-equivariant and stable as $N$ varies.
+
+\paragraph{Final state space.}
+In our instantiation, the per-dataset descriptor is $z_{t,i}\in\R^{8}$, the model block is $g^{\text{model}}_t\in\R^{5}$, and the progress block is $g^{\text{progress}}_t\in\R^{8}$. Consequently
+\[
+S_t \;=\; \big(\rho(\tfrac{1}{N}\sum_i \phi(z_{t,i})),\, g^{\text{model}}_t,\, g^{\text{progress}}_t\big)
+\;\in\;
+\R^{d_{\text{data}}}\times\R^{5}\times\R^{8},
+\]
+with $d_{\text{data}}$ fixed by the readout $\rho$ and independent of $N$. This grouped, compact observation is strictly Markov when information-preserving and, empirically, approximately Markov otherwise; it is expressly designed to capture the levers most predictive of one-step dynamics under SGD while remaining invariant to the number and ordering of datasets.
+
 
 \section{Method}
 \subsection{Policy and Training}
