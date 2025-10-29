@@ -46,7 +46,7 @@
 \maketitle
 
 \begin{abstract}
-In practice, models intended for a small, high-stakes domain are trained alongside much larger auxiliary datasets. This “many-to-one” regime accelerates learning but can mask failure on the target domain: for example, a mixture in which roughly $85$–$90\%$ of training examples come from a dominant source and the remaining $10$–$15\%$ are spread across specialized datasets can yield strong average accuracy while performing poorly on the minority slices that matter. We revisit \emph{learning to teach} and design \MAESTRO{ (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization})}, a reinforcement-learning teacher that explicitly guards against this imbalance by adaptively controlling three levers of the curriculum: the per-dataset mixture, the learning rate, and the lesson size (budget usage). Our formulation makes the teacher–student interaction \emph{Markov} by grounding transitions in SGD dynamics and exposing a compact, task/architecture-agnostic observation with three groups: (A) \textbf{dataset-level DeepSets embeddings} computed from permutation-invariant probe statistics (loss/uncertainty summaries, gradient-norm moments, and diversity sketches), (B) a \textbf{model-complexity} vector, and (C) a \textbf{training-progress} vector. A set-based encoder with mean pooling and shared per-dataset policy heads ensures \emph{number-of-datasets invariance}, producing valid mixtures for any number of datasets and any permutation, while a constrained-MDP view manages total budget. We validate \emph{approximate Markovity} via one-step prediction $R^2$ with only small gains from short histories, demonstrate invariance under varying number and permutations, and show cross-task/architecture portability (e.g., classification, detection, sequence labeling, QA), including leave-one-family-out and zero/few-shot transfer from toy episodes to large models. Despite its compactness, \MAESTRO{} achieves strong sample efficiency and improves balanced metrics (macro metrics) across heterogeneous mixtures.
+In practice, models intended for a small, high-stakes domain are trained alongside much larger auxiliary datasets. This “many-to-one” regime accelerates learning but can mask failure on the target domain: for example, a mixture in which roughly $85$–$90\%$ of training examples come from a dominant source and the remaining $10$–$15\%$ are spread across specialized datasets can yield strong average accuracy while performing poorly on the minority slices that matter. We revisit \emph{learning to teach} and design \MAESTRO{} (\emph{Markovian, Architecture-Agnostic, Equitable Scheduling for Task-Robust Optimization}), a reinforcement-learning teacher that explicitly guards against this imbalance by adaptively controlling three levers of the curriculum: the per-dataset mixture, the learning rate, and the lesson size (budget usage). Our formulation makes the teacher–student interaction \emph{Markov} by grounding transitions in SGD dynamics and exposing a compact, task/architecture-agnostic observation with three groups: (A) \textbf{dataset-level DeepSets embeddings} computed from permutation-invariant probe statistics (loss/uncertainty summaries, gradient-norm moments, and diversity sketches), (B) a \textbf{model-complexity} vector, and (C) a \textbf{training-progress} vector. A set-based encoder with mean pooling and shared per-dataset policy heads ensures \emph{number-of-datasets invariance}, producing valid mixtures for any number of datasets and any permutation, while a constrained-MDP view manages total budget. We validate \emph{approximate Markovity} via one-step prediction $R^2$ with only small gains from short histories, demonstrate invariance under varying number and permutations, and show cross-task/architecture portability (e.g., classification, detection, sequence labeling, QA), including leave-one-family-out and zero/few-shot transfer from toy episodes to large models. Despite its compactness, \MAESTRO{} achieves strong sample efficiency and improves balanced metrics (macro metrics) across heterogeneous mixtures.
 
 
 \end{abstract}
@@ -199,10 +199,12 @@ B_t/B_0,\;
 \cos\!\big(g_t,g_{t-1}\big),\;
 \log \widetilde{G}_t
 \Big]^{\!\top}\!\in\mathbb{R}^{11},\\[0.25em]
-\widetilde{G}_t 
+\widetilde{G}_t
 &= \mathrm{EMA}_\alpha\!\big(\,\|g_t\|_2\,\big).
 \end{aligned}
 \end{equation}
+
+By convention we treat $(\eta_t,\mu_t,\lambda_t)$ inside $g^{\text{progress}}_t$ as the \emph{currently active} optimizer hyperparameters before the teacher issues $a_t$; the action may overwrite $\eta_t$ (and thus the effective step-size behaviour) for the subsequent update segment.
 
 
 \paragraph{Action parametrization and invariance.}
@@ -223,6 +225,14 @@ S_t \;=\; \big(\rho(\tfrac{1}{N}\sum_i \phi(z_{t,i})),\, g^{\text{model}}_t,\, g
 \R^{d_{\text{data}}}\times\R^{6}\times\R^{11},
 \]
 with $d_{\text{data}}$ fixed by the readout $\rho$ and independent of $N$; in this instantiation $d_m=6$ and $d_p=11$. This grouped, compact observation is strictly Markov when information-preserving and, empirically, approximately Markov otherwise; it is expressly designed to capture the levers most predictive of one-step dynamics under SGD while remaining invariant to the number and ordering of datasets.
+
+\begin{definition}[\MAESTRO{} teacher]\label{def:maestro}
+Let $\{\mathcal D_i\}_{i=1}^N$ be datasets, $B_0$ an initial example budget, and $H$ a horizon. \MAESTRO{} is the policy $\pi_\phi$ that, at decision time $t$, observes the grouped state $S_t=\big(g^{\mathrm{data}}_t,g^{\mathrm{model}}_t,g^{\mathrm{progress}}_t\big)$ defined in \S\ref{sec:state}, and emits actions $a_t=(w_t,\eta_t,u_t)$ where $w_t\in\Delta^{N-1}$ are per-dataset mixture weights produced by a permutation-equivariant head applied to $\{\phi(z_{t,i})\}_i$, $\eta_t$ is a bounded learning rate, and $u_t\in(0,1)$ is a usage fraction. The student updates by sampling $m_t=\lfloor u_t B_t\rfloor$ examples \emph{with replacement} from $\sum_i w_{t,i}\mathcal D_i$ and applying $K_t=\lceil m_t/b\rceil$ SGD steps (batch size $b$) at step size $\eta_t$. The episode is optimized as a constrained MDP with cost $c_t=m_t$ and reward defined from $\MacroAcc$ as in \S\ref{sec:mdp}.
+\end{definition}
+
+\begin{definition}[Approximate Markovity of the grouped state]\label{def:approx-markov-tight}
+Fix a predictor class $\mathcal F$ and thresholds $(\delta,\varepsilon)\in(0,1)\times[0,1)$. We say the grouped observation $S_t$ is \emph{$(\delta,\varepsilon)$-approximately Markov} for the training dynamics if there exists $\hat F\in\mathcal F$ such that the one-step prediction achieves $R^2\!\left(S_{t+1};\,\hat F(S_t,a_t)\right)\ge \delta$ and the marginal improvement from adding a short history is small: $\Delta R^2 \equiv R^2\!\left(S_{t+1};\,\hat F(S_t,a_t,S_{t-1},a_{t-1})\right)-R^2\!\left(S_{t+1};\,\hat F(S_t,a_t)\right)\le \varepsilon$. In experiments we report $R^2$ and $\Delta R^2$ for a fixed $\mathcal F$ (MLP) as diagnostics of approximate Markovity.
+\end{definition}
 
 
 \section{Method}
@@ -378,7 +388,7 @@ Bandit (Thompson) & 00.0 & 00.0 \\
 \subsection{Ablations (Placeholders)}
 \begin{itemize}[leftmargin=1.5em]
 \item \textbf{State sufficiency:} remove trends; ablate dataset-embedding features or model/progress blocks (e.g., drop ECE or gradient stats); replace with alternative scalars; switch MLP$\to$GRU.
-\item \textbf{Action parameterization:} continuous simplex vs. sparse top-$k$; effect of discretization for $\ell,u$.
+\item \textbf{Action parameterization:} continuous simplex vs. sparse top-$k$; effect of discretization for $\eta,u$.
 \item \textbf{Encoder invariance:} shared per-dataset block + pooling vs. flat concatenation.
 \item \textbf{Horizon/budget:} vary $H$ and $B_0$; measure stability and sample efficiency.
 \end{itemize}
